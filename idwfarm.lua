@@ -1007,7 +1007,7 @@ _za()
 end
 
 -- BOOST PERFORMANCE: bikin game lebih ringan di client. Tidak menyentuh remote/gameplay.
-local Boost = { on = false, saved = nil, conns = {}, effectCount = 0 }
+local Boost = { on = false, saved = nil, conns = {}, effectCount = 0, meshCount = 0 }
 local EFFECT_CLASSES = { "ParticleEmitter", "Trail", "Beam", "Smoke", "Fire", "Sparkles", "Highlight" }
 local POST_FX_CLASSES = { "BloomEffect", "SunRaysEffect", "ColorCorrectionEffect", "DepthOfFieldEffect", "BlurEffect" }
 -- Tiap kelas efek punya properti berbeda, jangan diperlakukan sama (Atmosphere TIDAK punya .Enabled, beda dengan Clouds)
@@ -1032,6 +1032,26 @@ local function setEffectsEnabled(enabled)
 	end
 	return n
 end
+-- Turunkan detail model (karakter/map/item) ke paling sederhana yang Roblox sediakan, tanpa mengubah bentuk/hitbox
+local function setMeshFidelity(enabled, store)
+	local n = 0
+	for _, inst in ipairs(workspace:GetDescendants()) do
+		if inst:IsA("MeshPart") then
+			if enabled then
+				local okR, cur = pcall(function() return inst.RenderFidelity end)
+				if okR and cur ~= Enum.RenderFidelity.Performance then
+					store[inst] = cur
+					pcall(function() inst.RenderFidelity = Enum.RenderFidelity.Performance end)
+					n = n + 1
+				end
+			else
+				local orig = store[inst]
+				if orig ~= nil then pcall(function() inst.RenderFidelity = orig end) end
+			end
+		end
+	end
+	return n
+end
 function Boost.enable()
 	if Boost.on then return true end
 	local ok, saved = pcall(function()
@@ -1048,6 +1068,7 @@ function Boost.enable()
 			waterReflect = workspace.Terrain and workspace.Terrain.WaterReflectance,
 			postFx = {},
 			fxInst = {},
+			meshFidelity = {},
 		}
 	end)
 	if not ok then return false, "Gagal membaca pengaturan grafis" end
@@ -1099,9 +1120,20 @@ function Boost.enable()
 		end
 	end)
 	Boost.effectCount = setEffectsEnabled(false)
+	Boost.meshCount = setMeshFidelity(true, saved.meshFidelity)
 	table.insert(Boost.conns, workspace.DescendantAdded:Connect(function(inst)
 		if isEffect(inst) then
 			task.defer(function() if Boost.on then pcall(function() inst.Enabled = false end) end end)
+		elseif inst:IsA("MeshPart") then
+			task.defer(function()
+				if Boost.on and Boost.saved then
+					local okR, cur = pcall(function() return inst.RenderFidelity end)
+					if okR and cur ~= Enum.RenderFidelity.Performance then
+						Boost.saved.meshFidelity[inst] = cur
+						pcall(function() inst.RenderFidelity = Enum.RenderFidelity.Performance end)
+					end
+				end
+			end)
 		end
 	end))
 	return true
@@ -1128,6 +1160,7 @@ function Boost.disable()
 				pcall(function() inst[field] = val end)
 			end
 		end
+		setMeshFidelity(false, saved.meshFidelity or {})
 		pcall(function()
 			local t = workspace.Terrain
 			if t then
@@ -1723,7 +1756,7 @@ addSwitch(cBoost, "Aktifkan Boost Performance", "Bikin game lebih ringan biar ng
 	end)
 local boostStat = label(cBoost, "", 11, C.muted, Enum.Font.GothamMedium)
 table.insert(refreshers, function()
-	local t = ("Status: %s  |  efek dimatikan: %d"):format(Boost.on and "AKTIF" or "mati", Boost.effectCount)
+	local t = ("Status: %s  |  efek mati: %d  |  model disederhanakan: %d"):format(Boost.on and "AKTIF" or "mati", Boost.effectCount, Boost.meshCount)
 	if boostStat.Text ~= t then boostStat.Text = t end
 end)
 addNote(cBoost, "Cuma ubah tampilan, bukan cara main. Balik normal otomatis kalau dimatikan.")
