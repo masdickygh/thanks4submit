@@ -1006,172 +1006,139 @@ S.farm = false
 _za()
 end
 
--- BOOST PERFORMANCE: menurunkan beban render di client. Tidak menyentuh remote/gameplay.
-local Boost = { on = false, extreme = false, saved = nil, conns = {}, effectCount = 0, hidden = {}, cullDist = 120 }
+-- BOOST PERFORMANCE: bikin game lebih ringan di client. Tidak menyentuh remote/gameplay.
+local Boost = { on = false, saved = nil, conns = {}, effectCount = 0 }
 local EFFECT_CLASSES = { "ParticleEmitter", "Trail", "Beam", "Smoke", "Fire", "Sparkles", "Highlight" }
 local POST_FX_CLASSES = { "BloomEffect", "SunRaysEffect", "ColorCorrectionEffect", "DepthOfFieldEffect", "BlurEffect" }
+-- Tiap kelas efek punya properti berbeda, jangan diperlakukan sama (Atmosphere TIDAK punya .Enabled, beda dengan Clouds)
+local FX_FIELDS = {
+	Atmosphere = { Density = 0, Haze = 0, Glare = 0 },
+	Clouds = { Enabled = false, Cover = 0, Density = 0 },
+}
 local function isEffect(inst)
-for _, c in ipairs(EFFECT_CLASSES) do if inst:IsA(c) then return true end end
-return false
+	for _, c in ipairs(EFFECT_CLASSES) do if inst:IsA(c) then return true end end
+	return false
 end
 local function setEffectsEnabled(enabled)
-local n = 0
-for _, inst in ipairs(workspace:GetDescendants()) do
-if isEffect(inst) then
-local ok, cur = pcall(function() return inst.Enabled end)
-if ok and cur ~= enabled then
-pcall(function() inst.Enabled = enabled end)
-n = n + 1
-end
-end
-end
-return n
-end
-local function isOwnObject(part)
-local char = LocalPlayer.Character
-if char and part:IsDescendantOf(char) then return true end
-for _, p in ipairs(Players:GetPlayers()) do
-if p.Character and part:IsDescendantOf(p.Character) then return true end
-end
-local tool = part:FindFirstAncestorWhichIsA("Tool")
-if tool then return true end
-if part:IsDescendantOf(workspace.Terrain) then return true end
-return false
-end
-local function cullTick()
-local cam = workspace.CurrentCamera
-local pos = cam and cam.CFrame.Position
-if not pos then return end
-local d2 = Boost.cullDist * Boost.cullDist
-local seen = {}
-for _, inst in ipairs(workspace:GetDescendants()) do
-if (inst:IsA("BasePart") or inst:IsA("MeshPart") or inst:IsA("UnionOperation")) and inst.Anchored and not isOwnObject(inst) then
-local far = (inst.Position - pos).Magnitude * (inst.Position - pos).Magnitude > d2
-if far then
-seen[inst] = true
-if Boost.hidden[inst] == nil then
-local ok, dm = pcall(function() return inst.Transparency end)
-pcall(function() inst.LocalTransparencyModifier = 1 end)
-Boost.hidden[inst] = true
-end
-elseif Boost.hidden[inst] then
-pcall(function() inst.LocalTransparencyModifier = 0 end)
-Boost.hidden[inst] = nil
-end
-end
-end
-end
-local function setPlayerAccessories(enabled)
-for _, p in ipairs(Players:GetPlayers()) do
-if p ~= LocalPlayer and p.Character then
-for _, acc in ipairs(p.Character:GetChildren()) do
-if acc:IsA("Accessory") then
-local h = acc:FindFirstChild("Handle")
-if h then pcall(function() h.LocalTransparencyModifier = enabled and 0 or 1 end) end
-end
-end
-end
-end
+	local n = 0
+	for _, inst in ipairs(workspace:GetDescendants()) do
+		if isEffect(inst) then
+			local ok, cur = pcall(function() return inst.Enabled end)
+			if ok and cur ~= enabled then
+				pcall(function() inst.Enabled = enabled end)
+				n = n + 1
+			end
+		end
+	end
+	return n
 end
 function Boost.enable()
-if Boost.on then return true end
-local ok, saved = pcall(function()
-local gs = UserSettings and UserSettings():GetService("UserGameSettings")
-return {
-quality = gs and gs.SavedQualityLevel,
-shadows = Lighting.GlobalShadows,
-tech = Lighting.Technology,
-diffuse = Lighting.EnvironmentDiffuseScale,
-specular = Lighting.EnvironmentSpecularScale,
-waterWave = workspace.Terrain and workspace.Terrain.WaterWaveSize,
-waterSpeed = workspace.Terrain and workspace.Terrain.WaterWaveSpeed,
-waterReflect = workspace.Terrain and workspace.Terrain.WaterReflectance,
-postFx = {},
-}
-end)
-if not ok then return false, "Gagal membaca pengaturan grafis" end
-Boost.saved = saved
-pcall(function()
-local gs = UserSettings():GetService("UserGameSettings")
-gs.SavedQualityLevel = Enum.SavedQualitySetting.QualityLevel1
-end)
-pcall(function() Lighting.GlobalShadows = false end)
-pcall(function() Lighting.Technology = Enum.Technology.Compatibility end)
-pcall(function() Lighting.EnvironmentDiffuseScale = 0 end)
-pcall(function() Lighting.EnvironmentSpecularScale = 0 end)
-for _, fx in ipairs(POST_FX_CLASSES) do
-for _, inst in ipairs(Lighting:GetChildren()) do
-if inst.ClassName == fx then
-saved.postFx[inst] = inst.Enabled
-pcall(function() inst.Enabled = false end)
-end
-end
-end
-pcall(function()
-local t = workspace.Terrain
-if t then
-t:SetAttribute("_boostHadDeco", true)
-t:SetDecorationsVisible(false)
-t.WaterWaveSize = 0
-t.WaterWaveSpeed = 0
-t.WaterReflectance = 0
-end
-end)
-Boost.effectCount = setEffectsEnabled(false)
-table.insert(Boost.conns, workspace.DescendantAdded:Connect(function(inst)
-if isEffect(inst) then
-task.defer(function() if Boost.on then pcall(function() inst.Enabled = false end) end end)
-end
-end))
-Boost.on = true
-return true
-end
-function Boost.setExtreme(v)
-if v == Boost.extreme then return end
-Boost.extreme = v
-if v then
-table.insert(Boost.conns, RunService.Heartbeat:Connect(function()
-Boost._t = (Boost._t or 0) + 1
-if Boost._t % 20 == 0 then pcall(cullTick) end
-end))
-setPlayerAccessories(false)
-table.insert(Boost.conns, Players.PlayerAdded:Connect(function(p)
-table.insert(Boost.conns, p.CharacterAdded:Connect(function() task.wait(1) if Boost.extreme then setPlayerAccessories(false) end end))
-end))
-else
-for inst in pairs(Boost.hidden) do pcall(function() inst.LocalTransparencyModifier = 0 end) end
-Boost.hidden = {}
-setPlayerAccessories(true)
-end
+	if Boost.on then return true end
+	local ok, saved = pcall(function()
+		local gs = UserSettings and UserSettings():GetService("UserGameSettings")
+		return {
+			quality = gs and gs.SavedQualityLevel,
+			shadows = Lighting.GlobalShadows,
+			tech = Lighting.Technology,
+			diffuse = Lighting.EnvironmentDiffuseScale,
+			specular = Lighting.EnvironmentSpecularScale,
+			shadowSoft = Lighting.ShadowSoftness,
+			waterWave = workspace.Terrain and workspace.Terrain.WaterWaveSize,
+			waterSpeed = workspace.Terrain and workspace.Terrain.WaterWaveSpeed,
+			waterReflect = workspace.Terrain and workspace.Terrain.WaterReflectance,
+			postFx = {},
+			fxInst = {},
+		}
+	end)
+	if not ok then return false, "Gagal membaca pengaturan grafis" end
+	Boost.saved = saved
+	-- Ditandai AKTIF begitu snapshot aman didapat, supaya switch selalu bisa dimatikan lagi walau ada satu langkah di bawah yang gagal
+	Boost.on = true
+	pcall(function()
+		local gs = UserSettings():GetService("UserGameSettings")
+		gs.SavedQualityLevel = Enum.SavedQualitySetting.QualityLevel1
+	end)
+	pcall(function() Lighting.GlobalShadows = false end)
+	pcall(function() Lighting.Technology = Enum.Technology.Compatibility end)
+	pcall(function() Lighting.EnvironmentDiffuseScale = 0 end)
+	pcall(function() Lighting.EnvironmentSpecularScale = 0 end)
+	pcall(function() Lighting.ShadowSoftness = 0 end)
+	for _, fx in ipairs(POST_FX_CLASSES) do
+		for _, inst in ipairs(Lighting:GetChildren()) do
+			if inst.ClassName == fx then
+				local okE, en = pcall(function() return inst.Enabled end)
+				if okE then
+					saved.postFx[inst] = en
+					pcall(function() inst.Enabled = false end)
+				end
+			end
+		end
+	end
+	for _, inst in ipairs(Lighting:GetChildren()) do
+		local fields = FX_FIELDS[inst.ClassName]
+		if fields then
+			local snap = {}
+			for field in pairs(fields) do
+				local okR, val = pcall(function() return inst[field] end)
+				if okR then snap[field] = val end
+			end
+			saved.fxInst[inst] = snap
+			for field, newVal in pairs(fields) do
+				pcall(function() inst[field] = newVal end)
+			end
+		end
+	end
+	pcall(function()
+		local t = workspace.Terrain
+		if t then
+			t:SetAttribute("_boostHadDeco", true)
+			t:SetDecorationsVisible(false)
+			t.WaterWaveSize = 0
+			t.WaterWaveSpeed = 0
+			t.WaterReflectance = 0
+		end
+	end)
+	Boost.effectCount = setEffectsEnabled(false)
+	table.insert(Boost.conns, workspace.DescendantAdded:Connect(function(inst)
+		if isEffect(inst) then
+			task.defer(function() if Boost.on then pcall(function() inst.Enabled = false end) end end)
+		end
+	end))
+	return true
 end
 function Boost.disable()
-if not Boost.on then return end
-Boost.on = false
-Boost.setExtreme(false)
-for _, c in ipairs(Boost.conns) do pcall(function() c:Disconnect() end) end
-Boost.conns = {}
-local saved = Boost.saved
-if saved then
-pcall(function()
-local gs = UserSettings():GetService("UserGameSettings")
-if saved.quality ~= nil then gs.SavedQualityLevel = saved.quality end
-end)
-pcall(function() Lighting.GlobalShadows = saved.shadows end)
-pcall(function() Lighting.Technology = saved.tech end)
-pcall(function() Lighting.EnvironmentDiffuseScale = saved.diffuse end)
-pcall(function() Lighting.EnvironmentSpecularScale = saved.specular end)
-for inst, en in pairs(saved.postFx or {}) do pcall(function() inst.Enabled = en end) end
-pcall(function()
-local t = workspace.Terrain
-if t then
-t:SetDecorationsVisible(true)
-if saved.waterWave ~= nil then t.WaterWaveSize = saved.waterWave end
-if saved.waterSpeed ~= nil then t.WaterWaveSpeed = saved.waterSpeed end
-if saved.waterReflect ~= nil then t.WaterReflectance = saved.waterReflect end
-end
-end)
-end
-setEffectsEnabled(true)
+	if not Boost.on then return end
+	Boost.on = false
+	for _, c in ipairs(Boost.conns) do pcall(function() c:Disconnect() end) end
+	Boost.conns = {}
+	local saved = Boost.saved
+	if saved then
+		pcall(function()
+			local gs = UserSettings():GetService("UserGameSettings")
+			if saved.quality ~= nil then gs.SavedQualityLevel = saved.quality end
+		end)
+		pcall(function() Lighting.GlobalShadows = saved.shadows end)
+		pcall(function() Lighting.Technology = saved.tech end)
+		pcall(function() Lighting.EnvironmentDiffuseScale = saved.diffuse end)
+		pcall(function() Lighting.EnvironmentSpecularScale = saved.specular end)
+		pcall(function() Lighting.ShadowSoftness = saved.shadowSoft end)
+		for inst, en in pairs(saved.postFx or {}) do pcall(function() inst.Enabled = en end) end
+		for inst, snap in pairs(saved.fxInst or {}) do
+			for field, val in pairs(snap) do
+				pcall(function() inst[field] = val end)
+			end
+		end
+		pcall(function()
+			local t = workspace.Terrain
+			if t then
+				t:SetDecorationsVisible(true)
+				if saved.waterWave ~= nil then t.WaterWaveSize = saved.waterWave end
+				if saved.waterSpeed ~= nil then t.WaterWaveSpeed = saved.waterSpeed end
+				if saved.waterReflect ~= nil then t.WaterReflectance = saved.waterReflect end
+			end
+		end)
+	end
+	setEffectsEnabled(true)
 end
 
 local _ze, _zd = pcall(function()
@@ -1744,7 +1711,7 @@ addNote(cAct, "Uji aman dulu: favoritkan 1 ikan murah, tekan 'Jual sekarang'. Ji
 
 local cBoost = addCard(pExtras)
 addHeading(cBoost, "BOOST PERFORMANCE")
-addSwitch(cBoost, "Aktifkan Boost Performance", "Grafis ke level terendah, bayangan/pantulan/efek partikel mati, air map disederhanakan.",
+addSwitch(cBoost, "Aktifkan Boost Performance", "Bikin game lebih ringan biar nggak lag/panas.",
 	function() return Boost.on end,
 	function(v)
 		if v then
@@ -1754,26 +1721,12 @@ addSwitch(cBoost, "Aktifkan Boost Performance", "Grafis ke level terendah, bayan
 			Boost.disable()
 		end
 	end)
-addSwitch(cBoost, "Mode Ekstrem", "Sembunyikan objek diam yang jauh dari kamera dan aksesoris pemain lain. Lebih ringan tapi objek jauh bisa muncul/hilang saat kamu bergerak.",
-	function() return Boost.extreme end,
-	function(v)
-		if v and not Boost.on then
-			Core.toast("Nyalakan Boost Performance dulu sebelum Mode Ekstrem.", "warn", 4)
-			return
-		end
-		Boost.setExtreme(v)
-	end)
-addNumber(cBoost, "Jarak sembunyi (studs)", "Hanya untuk Mode Ekstrem. Objek diam lebih jauh dari ini disembunyikan dari kameramu saja.",
-	function() return Boost.cullDist end, function(v) Boost.cullDist = v end, 60, 400, true)
 local boostStat = label(cBoost, "", 11, C.muted, Enum.Font.GothamMedium)
 table.insert(refreshers, function()
-	local n = 0
-	for _ in pairs(Boost.hidden) do n = n + 1 end
-	local t = ("Status: %s%s  |  efek dimatikan: %d%s"):format(Boost.on and "AKTIF" or "mati",
-		Boost.extreme and " + EKSTREM" or "", Boost.effectCount, Boost.extreme and ("  |  objek disembunyikan: " .. n) or "")
+	local t = ("Status: %s  |  efek dimatikan: %d"):format(Boost.on and "AKTIF" or "mati", Boost.effectCount)
 	if boostStat.Text ~= t then boostStat.Text = t end
 end)
-addNote(cBoost, "Hanya tampilan di layarmu, tidak mengubah remote/gameplay/hitbox. Mati otomatis saat script ditutup. Mode Ekstrem bisa membuat objek dekorasi 'pop-in' saat kamu berlari; kalau mengganggu, matikan Mode Ekstrem saja dan biarkan Boost Performance tetap menyala.")
+addNote(cBoost, "Cuma ubah tampilan, bukan cara main. Balik normal otomatis kalau dimatikan.")
 local cStreak = addCard(pExtras)
 addHeading(cStreak, "ANTI-LOSE STREAK", "streak")
 addSwitch(cStreak, "Aktifkan Anti-Lose Streak", "Rejoin otomatis saat tangkapan gagal.",
