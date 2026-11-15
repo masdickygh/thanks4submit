@@ -1007,7 +1007,7 @@ _za()
 end
 
 -- BOOST PERFORMANCE: bikin game lebih ringan di client. Tidak menyentuh remote/gameplay.
-local Boost = { on = false, saved = nil, conns = {}, effectCount = 0, fpsCap = 20 }
+local Boost = { on = false, saved = nil, conns = {}, effectCount = 0 }
 local EFFECT_CLASSES = { "ParticleEmitter", "Trail", "Beam", "Smoke", "Fire", "Sparkles", "Highlight" }
 local POST_FX_CLASSES = { "BloomEffect", "SunRaysEffect", "ColorCorrectionEffect", "DepthOfFieldEffect", "BlurEffect" }
 local ATMO_CLASSES = { "Atmosphere", "Clouds" }
@@ -1042,8 +1042,6 @@ shadowSoft = Lighting.ShadowSoftness,
 waterWave = workspace.Terrain and workspace.Terrain.WaterWaveSize,
 waterSpeed = workspace.Terrain and workspace.Terrain.WaterWaveSpeed,
 waterReflect = workspace.Terrain and workspace.Terrain.WaterReflectance,
-fov = workspace.CurrentCamera and workspace.CurrentCamera.FieldOfView,
-fpsCapBefore = (function() if not getfpscap then return nil end local ok, v = pcall(getfpscap) if ok then return v end return nil end)(),
 postFx = {},
 atmo = {},
 }
@@ -1059,8 +1057,6 @@ pcall(function() Lighting.Technology = Enum.Technology.Compatibility end)
 pcall(function() Lighting.EnvironmentDiffuseScale = 0 end)
 pcall(function() Lighting.EnvironmentSpecularScale = 0 end)
 pcall(function() Lighting.ShadowSoftness = 0 end)
-pcall(function() workspace.CurrentCamera.FieldOfView = math.min(workspace.CurrentCamera.FieldOfView, 50) end)
-if setfpscap then pcall(setfpscap, Boost.fpsCap) end
 for _, fx in ipairs(POST_FX_CLASSES) do
 for _, inst in ipairs(Lighting:GetChildren()) do
 if inst.ClassName == fx then
@@ -1119,8 +1115,6 @@ pcall(function() Lighting.Technology = saved.tech end)
 pcall(function() Lighting.EnvironmentDiffuseScale = saved.diffuse end)
 pcall(function() Lighting.EnvironmentSpecularScale = saved.specular end)
 pcall(function() Lighting.ShadowSoftness = saved.shadowSoft end)
-pcall(function() if saved.fov then workspace.CurrentCamera.FieldOfView = saved.fov end end)
-if setfpscap then pcall(setfpscap, (saved.fpsCapBefore and saved.fpsCapBefore > 0) and saved.fpsCapBefore or 0) end
 for inst, en in pairs(saved.postFx or {}) do pcall(function() inst.Enabled = en end) end
 for inst, snap in pairs(saved.atmo or {}) do
 pcall(function() inst.Enabled = snap.Enabled end)
@@ -1721,15 +1715,12 @@ addSwitch(cBoost, "Aktifkan Boost Performance", "Bikin game lebih ringan biar ng
 			Boost.disable()
 		end
 	end)
-addNumber(cBoost, "Batas FPS", "Lebih rendah = lebih adem, cocok buat AFK lama. Aktifkan ulang switch di atas biar kepakai.",
-	function() return Boost.fpsCap end, function(v) Boost.fpsCap = v end, 10, 60, true)
 local boostStat = label(cBoost, "", 11, C.muted, Enum.Font.GothamMedium)
 table.insert(refreshers, function()
-	local t = ("Status: %s  |  efek dimatikan: %d%s"):format(Boost.on and "AKTIF" or "mati", Boost.effectCount,
-		setfpscap and "" or "  |  Batas FPS tidak didukung executor ini")
+	local t = ("Status: %s  |  efek dimatikan: %d"):format(Boost.on and "AKTIF" or "mati", Boost.effectCount)
 	if boostStat.Text ~= t then boostStat.Text = t end
 end)
-addNote(cBoost, "Cuma ubah tampilan, bukan cara main. Aman ditinggal AFK berhari-hari. Balik normal otomatis kalau dimatikan.")
+addNote(cBoost, "Cuma ubah tampilan, bukan cara main. Balik normal otomatis kalau dimatikan.")
 local cStreak = addCard(pExtras)
 addHeading(cStreak, "ANTI-LOSE STREAK", "streak")
 addSwitch(cStreak, "Aktifkan Anti-Lose Streak", "Rejoin otomatis saat tangkapan gagal.",
