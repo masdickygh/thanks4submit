@@ -1206,6 +1206,7 @@ local function setMeshFidelity(enabled, store)
 	return n
 end
 function Boost.enable()
+	if not _zr then return false, "Khusus PREMIUM/OWNER" end
 	if Boost.on then return true end
 	local ok, saved = pcall(function()
 		local gs = UserSettings and UserSettings():GetService("UserGameSettings")
@@ -2059,7 +2060,7 @@ addSwitch(cAccept, "Auto Accept", "Otomatis terima kiriman ikan yang masuk.",
 addNote(cAccept, "Popup bawaan game mungkin sempat kelihatan sebentar, itu wajar.")
 
 local cBoost = addCard(pExtras)
-addHeading(cBoost, "BOOST PERFORMANCE")
+addHeading(cBoost, "BOOST PERFORMANCE", "boost")
 addSwitch(cBoost, "Aktifkan Boost Performance", "Bikin game lebih ringan biar nggak lag/panas.",
 	function() return Boost.on end,
 	function(v)
@@ -2069,7 +2070,7 @@ addSwitch(cBoost, "Aktifkan Boost Performance", "Bikin game lebih ringan biar ng
 		else
 			Boost.disable()
 		end
-	end)
+	end, nil, "boost")
 local boostStat = label(cBoost, "", 11, C.muted, Enum.Font.GothamMedium)
 table.insert(refreshers, function()
 	local t = ("Status: %s  |  efek mati: %d  |  model disederhanakan: %d"):format(Boost.on and "AKTIF" or "mati", Boost.effectCount, Boost.meshCount)
