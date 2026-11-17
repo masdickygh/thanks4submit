@@ -23,5 +23,6 @@ return {
 		"patricia_onna1",
 		"davidBekam01",
 		"Laiyala67",
+		"qwerlorem6969"
 	},
 }
