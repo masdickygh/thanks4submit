@@ -352,6 +352,59 @@ end
 local function resetControl()
 ctl.lastFish, ctl.lastZone, ctl.fishV, ctl.start, ctl.lastHold, ctl.forced = nil, nil, 0, nil, nil, false
 end
+local InputLock = { on = false, gui = nil, shield = nil, badge = nil }
+local function buildInputLockGui()
+if InputLock.gui then return true end
+local ok = pcall(function()
+local sg = Instance.new("ScreenGui")
+sg.Name = _BRAND_NAME .. "_Lock"
+sg.ResetOnSpawn = false
+sg.IgnoreGuiInset = true
+sg.DisplayOrder = 998
+sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+local parented = pcall(function() sg.Parent = (gethui and gethui()) or game:GetService("CoreGui") end)
+if not parented or not sg.Parent then sg.Parent = LocalPlayer:WaitForChild("PlayerGui") end
+local shield = Instance.new("TextButton")
+shield.Name = "MinigameLockShield"
+shield.Size = UDim2.fromScale(1, 1)
+shield.BackgroundTransparency = 1
+shield.Text = ""
+shield.AutoButtonColor = false
+shield.Active = true
+shield.Selectable = false
+shield.ZIndex = 50
+shield.Visible = false
+shield.Parent = sg
+local badge = Instance.new("TextLabel")
+badge.Name = "MinigameLockBadge"
+badge.Size = UDim2.fromOffset(190, 24)
+badge.AnchorPoint = Vector2.new(0.5, 0)
+badge.Position = UDim2.new(0.5, 0, 0, 8)
+badge.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+badge.BackgroundTransparency = 0.35
+badge.BorderSizePixel = 0
+badge.TextColor3 = Color3.fromRGB(255, 255, 255)
+badge.Font = Enum.Font.GothamBold
+badge.TextSize = 12
+badge.Text = "AUTO MINIGAME - LAYAR TERKUNCI"
+badge.ZIndex = 51
+badge.Visible = false
+local uc = Instance.new("UICorner")
+uc.CornerRadius = UDim.new(0, 8)
+uc.Parent = badge
+badge.Parent = sg
+InputLock.gui, InputLock.shield, InputLock.badge = sg, shield, badge
+end)
+return ok
+end
+local function setInputLock(on)
+on = on and true or false
+if InputLock.on == on then return end
+InputLock.on = on
+if not buildInputLockGui() then return end
+if InputLock.shield then InputLock.shield.Visible = on end
+if InputLock.badge then InputLock.badge.Visible = on end
+end
 local function simulate(x, v, hold, steps, dt)
 local accel = hold and ZONE_ACCEL or -ZONE_ACCEL
 for _ = 1, steps do
@@ -377,9 +430,13 @@ local errFree = math.abs(fishPred - simulate(zoneX, zoneV, false, n, dt))
 return errHold < errFree
 end
 local function onHeartbeat(dt)
-if not S.farm or not mg then return end
+if not S.farm or not mg then
+setInputLock(false)
+return
+end
 local okA, active = pcall(mg.IsActive, mg)
 if not (okA and active) then
+setInputLock(false)
 if ctl.start then
 if ctl.forced or (_zr and S.biteFast) then
 Core.pendingVerify = os.clock()
@@ -389,6 +446,7 @@ resetControl()
 end
 return
 end
+setInputLock(true)
 dt = math.clamp(dt, 1 / 240, MAX_DT)
 ctl.start = ctl.start or os.clock()
 refreshMinigameState()
@@ -1040,6 +1098,7 @@ stats.status = "Farm aktif"
 setNotice("Farm mancing aktif", 3, "ok")
 else
 if mg then pcall(mg.SetHolding, mg, false) end
+pcall(setInputLock, false)
 resetControl()
 busySince = nil
 Core.pendingVerify = nil
@@ -2478,6 +2537,7 @@ S.farm, S.sellOn = false, false
 pcall(Boost.disable)
 pcall(restoreTuning)
 if mg then pcall(mg.SetHolding, mg, false) end
+pcall(setInputLock, false)
 for _, c in ipairs(connections) do pcall(function() c:Disconnect() end) end
 if env[K.g2o] then env[K.g2o].handler = nil end
 pcall(UI.destroy)
