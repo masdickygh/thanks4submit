@@ -1895,164 +1895,168 @@ if lastLbl.Text ~= t then lastLbl.Text = t end
 end)
 addNote(cAct, "Uji aman dulu: favoritkan 1 ikan murah, tekan 'Jual sekarang'. Jika ikut hilang, jangan nyalakan jual-semua.")
 
+local function buildDropdown(parent, lockKey)
+local box = mk("Frame", { Size = UDim2.new(1, 0, 0, 38), BackgroundColor3 = C.white, LayoutOrder = ord(parent) }, parent)
+corner(box, 10)
+local bstroke = stroke(box, C.gray, 1.5)
+local lbl = mk("TextLabel", { Size = UDim2.new(1, -34, 1, 0), Position = UDim2.fromOffset(12, 0), BackgroundTransparency = 1, Text = "", Font = Enum.Font.GothamMedium, TextSize = 12, TextColor3 = C.muted, TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd }, box)
+local caret = mk("TextLabel", { Size = UDim2.fromOffset(20, 20), AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -10, 0.5, 0), BackgroundTransparency = 1, Text = "v", TextColor3 = C.muted, Font = Enum.Font.GothamBold, TextSize = 12 }, box)
+local clickOverlay = mk("TextButton", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", AutoButtonColor = false }, box)
+lockShield(box, lockKey, { radius = 10, inset = 12 })
+local panel = mk("Frame", { Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1, ClipsDescendants = true, LayoutOrder = ord(parent) }, parent)
+local sf = mk("ScrollingFrame", {
+Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = C.offwhite, BorderSizePixel = 0, ScrollBarThickness = 4,
+ScrollBarImageColor3 = C.yellowDark, CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y,
+ScrollingDirection = Enum.ScrollingDirection.Y,
+}, panel)
+corner(sf, 8)
+mk("UIListLayout", { Padding = UDim.new(0, 2), SortOrder = Enum.SortOrder.LayoutOrder }, sf)
+mk("UIPadding", { PaddingTop = UDim.new(0, 4), PaddingBottom = UDim.new(0, 4), PaddingLeft = UDim.new(0, 4), PaddingRight = UDim.new(0, 4) }, sf)
+local open = false
+local function setOpen(v)
+open = v
+panel.Size = v and UDim2.new(1, 0, 0, 160) or UDim2.new(1, 0, 0, 0)
+caret.Text = v and "^" or "v"
+end
+clickOverlay.Activated:Connect(function() setOpen(not open) end)
+return { lbl = lbl, sf = sf, setOpen = setOpen, isOpen = function() return open end }
+end
+local function dropdownRow(sf, text, onClick)
+local row = mk("TextButton", { Size = UDim2.new(1, 0, 0, 32), BackgroundColor3 = C.white, Text = "", AutoButtonColor = false }, sf)
+corner(row, 6)
+local txt = mk("TextLabel", { Size = UDim2.new(1, -16, 1, 0), Position = UDim2.fromOffset(8, 0), BackgroundTransparency = 1, Text = text, Font = Enum.Font.GothamMedium, TextSize = 12, TextColor3 = C.text, TextXAlignment = Enum.TextXAlignment.Left }, row)
+row.Activated:Connect(onClick)
+return row, txt
+end
+
 local cTarget = addCard(pTrade)
 addHeading(cTarget, "PILIH TARGET", "trade")
-local targetGrid = mk("Frame", { Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = ord(cTarget) }, cTarget)
-mk("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }, targetGrid)
-local targetLbl = label(cTarget, "Target: belum dipilih", 11, C.muted, Enum.Font.GothamMedium)
+local ddTarget = buildDropdown(cTarget, "trade")
+ddTarget.lbl.Text = "Belum dipilih"
 do
-	local lastSig, chips = nil, {}
-	table.insert(refreshers, function()
-		local keys, sig = {}, {}
-		for _, p in ipairs(Players:GetPlayers()) do
-			if p ~= LocalPlayer then
-				table.insert(keys, p)
-				table.insert(sig, tostring(p.UserId))
-			end
-		end
-		sig = table.concat(sig, "|")
-		if sig ~= lastSig then
-			lastSig = sig
-			for _, c in ipairs(chips) do c:Destroy() end
-			chips = {}
-			for i, p in ipairs(keys) do
-				local chip = mk("TextButton", { Text = p.Name, Font = Enum.Font.GothamBold, TextSize = 12, AutoButtonColor = false, LayoutOrder = i, Size = UDim2.new(1, 0, 0, 34), BackgroundColor3 = C.white, TextColor3 = C.muted }, targetGrid)
-				corner(chip, 8)
-				local cs = stroke(chip, C.gray, 1.5)
-				lockShield(chip, "trade", { radius = 8, inset = 8 })
-				chip.Activated:Connect(function()
-					Trade.targetUserId, Trade.targetName = p.UserId, p.Name
-					UI.refresh()
-				end)
-				table.insert(chips, { btn = chip, cs = cs, player = p })
-			end
-		end
-		for _, c in ipairs(chips) do
-			local on = Trade.targetUserId == c.player.UserId
-			if c.btn:GetAttribute("_on") ~= on then
-				c.btn:SetAttribute("_on", on)
-				tw(c.btn, 0.15, { BackgroundColor3 = on and C.yellow or C.white, TextColor3 = on and C.text or C.muted })
-				tw(c.cs, 0.15, { Color = on and C.yellowDark or C.gray })
-			end
-		end
-		local t = "Target: " .. (Trade.targetName and (Trade.targetName .. (Players:GetPlayerByUserId(Trade.targetUserId or 0) and "" or " (sudah keluar)")) or "belum dipilih")
-		if targetLbl.Text ~= t then targetLbl.Text = t end
-	end)
+local lastSig, rows = nil, {}
+table.insert(refreshers, function()
+local keys, sig = {}, {}
+for _, p in ipairs(Players:GetPlayers()) do
+if p ~= LocalPlayer then table.insert(keys, p) table.insert(sig, tostring(p.UserId)) end
+end
+sig = table.concat(sig, "|")
+if sig ~= lastSig then
+lastSig = sig
+for _, r in ipairs(rows) do r:Destroy() end
+rows = {}
+for _, p in ipairs(keys) do
+local row = dropdownRow(ddTarget.sf, p.Name, function()
+Trade.targetUserId, Trade.targetName = p.UserId, p.Name
+ddTarget.lbl.Text = p.Name
+ddTarget.setOpen(false)
+end)
+table.insert(rows, row)
+end
+end
+if Trade.targetName and not Players:GetPlayerByUserId(Trade.targetUserId or 0) then
+ddTarget.lbl.Text = Trade.targetName .. " (sudah keluar)"
+end
+end)
 end
 
 local cRarity = addCard(pTrade)
 addHeading(cRarity, "PILIH RARITY", "trade")
-local rarityGrid = mk("Frame", { Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = ord(cRarity) }, cRarity)
-mk("UIGridLayout", { CellSize = UDim2.new(0.3333, -4, 0, 34), CellPadding = UDim2.fromOffset(6, 6), SortOrder = Enum.SortOrder.LayoutOrder }, rarityGrid)
+local ddRarity = buildDropdown(cRarity, "trade")
+ddRarity.lbl.Text = "Belum dipilih"
 do
-	local rarityChips = {}
-	for i, r in ipairs(RARITIES) do
-		local chip = mk("TextButton", { Text = r, Font = Enum.Font.GothamBold, TextSize = 11, AutoButtonColor = false, LayoutOrder = i, BackgroundColor3 = C.white, TextColor3 = C.muted }, rarityGrid)
-		corner(chip, 8)
-		local cs = stroke(chip, C.gray, 1.5)
-		lockShield(chip, "trade", { radius = 8, inset = 8 })
-		chip.Activated:Connect(function()
-			Trade.rarity = (Trade.rarity == r) and nil or r
-			Trade.fishName = nil
-			UI.refresh()
-		end)
-		rarityChips[r] = { btn = chip, cs = cs }
-	end
-	table.insert(refreshers, function()
-		local rc = countsByRarity()
-		for r, c in pairs(rarityChips) do
-			local txt = ("%s (x%d)"):format(r, rc[r] or 0)
-			if c.btn.Text ~= txt then c.btn.Text = txt end
-			local on = Trade.rarity == r
-			if c.btn:GetAttribute("_on") ~= on then
-				c.btn:SetAttribute("_on", on)
-				tw(c.btn, 0.15, { BackgroundColor3 = on and C.yellow or C.white, TextColor3 = on and C.text or C.muted })
-				tw(c.cs, 0.15, { Color = on and C.yellowDark or C.gray })
-			end
-		end
-	end)
+local rows = {}
+for _, r in ipairs(RARITIES) do
+local row, txt = dropdownRow(ddRarity.sf, r, function()
+Trade.rarity, Trade.fishName = r, nil
+ddRarity.lbl.Text = r
+ddRarity.setOpen(false)
+UI.refresh()
+end)
+rows[r] = txt
+end
+table.insert(refreshers, function()
+local rc = countsByRarity()
+for r, txt in pairs(rows) do
+local t = ("%s (x%d)"):format(r, rc[r] or 0)
+if txt.Text ~= t then txt.Text = t end
+end
+if Trade.rarity then
+local t = ("%s (x%d)"):format(Trade.rarity, rc[Trade.rarity] or 0)
+if ddRarity.lbl.Text ~= t then ddRarity.lbl.Text = t end
+end
+end)
 end
 
 local cFishName = addCard(pTrade)
 addHeading(cFishName, "NAMA IKAN (OPSIONAL)", "trade")
-addNote(cFishName, "Daftar ini dibaca langsung dari inventory kamu sendiri, jadi ikan baru di rarity yang sama otomatis ikut muncul tanpa perlu update script.")
-local nameGrid = mk("Frame", { Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = ord(cFishName) }, cFishName)
-mk("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }, nameGrid)
-local nameEmptyLbl = label(cFishName, "Pilih rarity dulu di atas.", 11, C.muted, Enum.Font.GothamMedium)
+local ddName = buildDropdown(cFishName, "trade")
+ddName.lbl.Text = "Semua nama"
 do
-	local lastSig, chips = nil, {}
-	table.insert(refreshers, function()
-		if not Trade.rarity then
-			if lastSig ~= "" then
-				lastSig = ""
-				for _, c in ipairs(chips) do c.btn:Destroy() end
-				chips = {}
-			end
-			nameEmptyLbl.Visible = true
-			return
-		end
-		nameEmptyLbl.Visible = false
-		local order, counts = namesForRarity(Trade.rarity)
-		local sig = Trade.rarity .. ":" .. table.concat(order, "|")
-		if sig ~= lastSig then
-			lastSig = sig
-			for _, c in ipairs(chips) do c.btn:Destroy() end
-			chips = {}
-			local allChip = mk("TextButton", { Text = "Semua nama", Font = Enum.Font.GothamBold, TextSize = 12, AutoButtonColor = false, LayoutOrder = 0, Size = UDim2.new(1, 0, 0, 34), BackgroundColor3 = C.white, TextColor3 = C.muted }, nameGrid)
-			corner(allChip, 8)
-			local allCs = stroke(allChip, C.gray, 1.5)
-			lockShield(allChip, "trade", { radius = 8, inset = 8 })
-			allChip.Activated:Connect(function() Trade.fishName = nil UI.refresh() end)
-			table.insert(chips, { btn = allChip, cs = allCs, name = nil })
-			for i, nm in ipairs(order) do
-				local chip = mk("TextButton", { Text = ("%s (x%d)"):format(nm, counts[nm] or 0), Font = Enum.Font.GothamBold, TextSize = 12, AutoButtonColor = false, LayoutOrder = i, Size = UDim2.new(1, 0, 0, 34), BackgroundColor3 = C.white, TextColor3 = C.muted }, nameGrid)
-				corner(chip, 8)
-				local cs = stroke(chip, C.gray, 1.5)
-				lockShield(chip, "trade", { radius = 8, inset = 8 })
-				chip.Activated:Connect(function() Trade.fishName = nm UI.refresh() end)
-				table.insert(chips, { btn = chip, cs = cs, name = nm })
-			end
-		else
-			for _, c in ipairs(chips) do
-				if c.name then
-					local txt = ("%s (x%d)"):format(c.name, counts[c.name] or 0)
-					if c.btn.Text ~= txt then c.btn.Text = txt end
-				end
-			end
-		end
-		for _, c in ipairs(chips) do
-			local on = Trade.fishName == c.name
-			if c.btn:GetAttribute("_on") ~= on then
-				c.btn:SetAttribute("_on", on)
-				tw(c.btn, 0.15, { BackgroundColor3 = on and C.yellow or C.white, TextColor3 = on and C.text or C.muted })
-				tw(c.cs, 0.15, { Color = on and C.yellowDark or C.gray })
-			end
-		end
-	end)
+local lastSig, rows = nil, {}
+table.insert(refreshers, function()
+if not Trade.rarity then
+if lastSig ~= "" then
+lastSig = ""
+for _, r in ipairs(rows) do r.row:Destroy() end
+rows = {}
+end
+return
+end
+local order, counts = namesForRarity(Trade.rarity)
+local sig = Trade.rarity .. ":" .. table.concat(order, "|")
+if sig ~= lastSig then
+lastSig = sig
+for _, r in ipairs(rows) do r.row:Destroy() end
+rows = {}
+local allRow = dropdownRow(ddName.sf, "Semua nama", function()
+Trade.fishName = nil
+ddName.lbl.Text = "Semua nama"
+ddName.setOpen(false)
+end)
+table.insert(rows, { row = allRow, txt = nil, name = nil })
+for _, nm in ipairs(order) do
+local row, txt = dropdownRow(ddName.sf, ("%s (x%d)"):format(nm, counts[nm] or 0), function()
+Trade.fishName = nm
+ddName.lbl.Text = ("%s (x%d)"):format(nm, counts[nm] or 0)
+ddName.setOpen(false)
+end)
+table.insert(rows, { row = row, txt = txt, name = nm })
+end
+else
+for _, r in ipairs(rows) do
+if r.name then
+local t = ("%s (x%d)"):format(r.name, counts[r.name] or 0)
+if r.txt.Text ~= t then r.txt.Text = t end
+if Trade.fishName == r.name and ddName.lbl.Text ~= t then ddName.lbl.Text = t end
+end
+end
+end
+end)
 end
 
 local cGive = addCard(pTrade)
 addHeading(cGive, "JUMLAH & AKSI", "trade")
-addNumber(cGive, "Jumlah ikan", "Berapa ekor yang mau dikirim sekali jalan. Dibatasi otomatis sejumlah yang benar-benar ada di inventory sesuai filter.",
-	function() return Trade.amount end, function(v) Trade.amount = math.max(1, math.floor(v)) end, 1, 500, true, nil, "trade")
-addSwitch(cGive, "Auto dekati target", "Biasanya TIDAK perlu dinyalakan - request tetap dikirim walau jauh. Nyalakan ini cuma kalau ternyata pengiriman dari jarak jauh selalu gagal/tidak direspon.",
-	function() return Trade.autoApproach end, function(v) Trade.autoApproach = v end, nil, "trade")
+addNumber(cGive, "Jumlah ikan", "Berapa ekor yang mau dikirim.",
+function() return Trade.amount end, function(v) Trade.amount = math.max(1, math.floor(v)) end, 1, 500, true, nil, "trade")
+addSwitch(cGive, "Auto dekati target", "Biasanya tidak perlu. Nyalakan kalau kirim jarak jauh gagal terus.",
+function() return Trade.autoApproach end, function(v) Trade.autoApproach = v end, nil, "trade")
 local giveStat = label(cGive, "", 11, C.muted, Enum.Font.GothamMedium)
 table.insert(refreshers, function()
-	if giveStat.Text ~= Trade.log then giveStat.Text = Trade.log end
+if giveStat.Text ~= Trade.log then giveStat.Text = Trade.log end
 end)
 addButton(cGive, "Mulai Give", "primary", function()
-	local ok, why = Trade.start()
-	if not ok then Core.toast("Trade gagal mulai: " .. tostring(why), "warn", 6) end
+local ok, why = Trade.start()
+if not ok then Core.toast("Trade gagal mulai: " .. tostring(why), "warn", 6) end
 end, "trade")
 addButton(cGive, "Stop", "ghost", function() Trade.stop() end, "trade")
-addNote(cGive, "Ikan yang difavoritkan otomatis di-unfavorite dulu sebelum dikirim. Script menunggu respons (diterima/ditolak/diabaikan selama 10 detik) sebelum lanjut ke ikan berikutnya, supaya request tidak numpuk.")
+addNote(cGive, "Ikan favorit otomatis di-unfavorite dulu. Dikirim satu-satu, tunggu respons baru lanjut.")
 
 local cAccept = addCard(pTrade)
 addHeading(cAccept, "TERIMA KIRIMAN MASUK", "trade")
-addSwitch(cAccept, "Auto Accept", "Otomatis terima semua permintaan pemberian ikan yang masuk, tanpa perlu klik manual.",
+addSwitch(cAccept, "Auto Accept", "Otomatis terima kiriman ikan yang masuk.",
 	function() return Trade.autoAccept end, function(v) Trade.autoAccept = v end, nil, "trade")
-addNote(cAccept, "GUI bawaan game tetap sempat muncul sekilas - itu normal, scriptnya sudah lebih dulu kirim jawaban 'terima' ke server di belakang layar.")
+addNote(cAccept, "Popup bawaan game mungkin sempat kelihatan sebentar, itu wajar.")
 
 local cBoost = addCard(pExtras)
 addHeading(cBoost, "BOOST PERFORMANCE")
