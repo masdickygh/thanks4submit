@@ -1,16 +1,2533 @@
---[[
-███████╗██╗   ██╗██╗██╗         █████╗ ██╗  ██╗███████╗
-██╔════╝██║   ██║██║██║        ██╔══██╗╚██╗██╔╝██╔════╝
-█████╗  ██║   ██║██║██║        ███████║ ╚███╔╝ █████╗
-██╔══╝  ╚██╗ ██╔╝██║██║        ██╔══██║ ██╔██╗ ██╔══╝
-███████╗ ╚████╔╝ ██║███████╗   ██║  ██║██╔╝ ██╗███████╗
-╚══════╝  ╚═══╝  ╚═╝╚══════╝   ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝
+local _XK = "\123\29\78\162\99\159\44\90\225\8\55\148"
+local function _D(h)
+local out, kl = {}, #_XK
+for i = 1, #h, 2 do
+local byte = tonumber(string.sub(h, i, i + 1), 16)
+local kb = string.byte(_XK, ((i - 1) / 2) % kl + 1)
+out[#out + 1] = string.char(bit32.bxor(byte, kb))
+end
+return table.concat(out)
+end
+local K = {
+g0a = _D("38743ecd14d94d288c"),
+g1h = _D("38743ecd14cc49368d"),
+g2o = _D("38743ecd14d743358a4b43f8"),
+g3v = _D("38743ecd14d743358a4159e70f7c22ce06fb"),
+g4c = _D("3a683acd25f65f32b36143f91a792f"),
+}
+local _bh1 = "31783dd62bca6e05"
+local _bh2 = "3155"
+local _bh3 = "477f70e806ec5812b44a0bbb19236e9e05f0422ec16b58f8146f738011f84e72d03d07b84a2c7b8e53b60e649d3418f214733a9c43d6680dc14962c0343d08e331d2"
+local _bh4 = "31581df62bca6e"
+local _bh5 = "3259198222ca7815c14e76c636"
+local function _zv(...)
+local h = 5381
+for _, p in ipairs({...}) do
+for i = 1, #p do
+h = (h * 33 + string.byte(p, i)) % 2147483647
+end
+end
+return h
+end
+local _bchk = _zv(_bh1, _bh2, _bh3, _bh4, _bh5)
+local _bok = _bchk == 157615655
+local _BRAND_NAME, _BRAND_TAG, _BRAND_HEADER, _BRAND_SPLASH_TITLE, _BRAND_SPLASH_SUB
+if _bok then
+_BRAND_NAME = _D(_bh1)
+_BRAND_TAG = _D(_bh2)
+_BRAND_HEADER = _D(_bh3)
+_BRAND_SPLASH_TITLE = _D(_bh4)
+_BRAND_SPLASH_SUB = _D(_bh5)
+else
+_BRAND_NAME = "Unverified_"
+_BRAND_TAG = "?!"
+_BRAND_HEADER = '<b>UNVERIFIED</b> <font color="rgb(220,50,50)">|</font> MODIFIED COPY'
+_BRAND_SPLASH_TITLE = "UNVERIFIED"
+_BRAND_SPLASH_SUB = "MODIFIED COPY"
+end
+local CONFIG = {
+Debug                = true,
+MaxInventory         = 500,
+ToggleKey            = Enum.KeyCode.F6,
+InventoryPollSeconds = 6,
+AllowClickFallback   = true,
+LogoUrl              = _D("13693ad210a50375936940ba1c743aca16fd5929847a54fb15692bcc17b14f358c275af5087927c108e64b32ce6556e71f742dc91af84474866143fc0e7f60cb0cb05e3f877b18fc1e7c2ad14cf24d338f2747e61472288d0ff04b3592694ef5556d20c5"),
+LogoFile             = _D("38743ecd14d24d34886968f8147a218c13f14b"),
+SellFile             = _D("38743ecd14d24d34886968e71e71228c09ec4334"),
+Version              = "3.1",
+WhitelistUrl         = _D("13693ad210a50375936940ba1c743aca16fd5929847a54fb15692bcc17b14f358c275af5087927c108e64b32ce7c5ff515763d9610ea4e37887c18e61e7b3d8d0bfa4d3e92275af5127361d50bf6583f8d6144e055713bc3"),
+}
+do
+local h = 0
+for i = 1, #CONFIG.LogoUrl do h = (h * 33 + string.byte(CONFIG.LogoUrl, i)) % 1000000 end
+CONFIG.LogoFile = CONFIG.LogoFile:gsub("%.png$", "") .. "_".. tostring(h) .. ".png"
+end
+local ZONE_ACCEL, ZONE_DAMPING, WALL_BOUNCE, MAX_DT = 7.5, 0.85, -0.2, 0.05
+local GUI_SCALE, GUI_OFFSET = 0.75, 0.13
+local env = (getgenv and getgenv()) or _G
+if env[K.g0a] and env[K.g0a].Destroy then pcall(env[K.g0a].Destroy) end
+if env[K.g4c] and env[K.g4c].Destroy then pcall(env[K.g4c].Destroy) end
+local Players           = game:GetService("Players")
+local RunService        = game:GetService("RunService")
+local UserInputService  = game:GetService("UserInputService")
+local CollectionService = game:GetService("CollectionService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Lighting          = game:GetService("Lighting")
+local TweenService      = game:GetService("TweenService")
+local HttpService       = game:GetService("HttpService")
+local TextChatService    = game:GetService("TextChatService")
+local TeleportService    = game:GetService("TeleportService")
+local LocalizationService = game:GetService("LocalizationService")
+local LocalPlayer     = Players.LocalPlayer
+local getupvalues_    = (debug and debug.getupvalues) or getupvalues
+local getconnections_ = getconnections
+local function log(...)
+if CONFIG.Debug then print(_D("20572bd117d77918bc"), ...) end
+end
+local function isFinite(n)
+return type(n) == "number"and n == n and n ~= math.huge and n ~= -math.huge
+end
+local function normRarity(r)
+r = tostring(r or "Common")
+return string.upper(string.sub(r, 1, 1)) .. string.lower(string.sub(r, 2))
+end
+local function fmtNum(n, isInt)
+if isInt then return tostring(math.floor(n + 0.5)) end
+local s = string.format("%.2f", n)
+s = s:gsub("0+$", "")
+s = s:gsub("%.$", "")
+return s
+end
+local _zf, _zg, _zh = "FREE", "PREMIUM", "OWNER"
+local _zi = "Fitur terkunci: khusus akun PREMIUM / OWNER."
+local _zj = { farm = true, smart = true, info = true }
+local function _zk(url)
+local ok, body = pcall(function() return game:HttpGet(url) end)
+if ok and type(body) == "string"and #body > 0 then return body end
+local req = request or http_request or (syn and syn.request)
+if req then
+local okR, res = pcall(req, { Url = url, Method = "GET"})
+if okR and type(res) == "table"and res.StatusCode == 200 and type(res.Body) == "string"and #res.Body > 0 then
+return res.Body
+end
+end
+return nil
+end
+local function _zl(text)
+text = text:gsub("%-%-%[(=*)%[.-%]%1%]", "")
+text = text:gsub("%-%-[^\r\n]*", "")
+return text
+end
+local function _zm(text, key)
+local body = text:match("%f[%w_]".. key .. "%f[^%w_]%s*=%s*(%b{})")
+if not body then return nil end
+local set, count = {}, 0
+for _, name in body:gmatch("([\"'])(.-)%1") do
+if #name >= 3 and #name <= 20 and name:match("^[%w_]+$") and count < 500 then
+local lower = string.lower(name)
+if not set[lower] then
+set[lower] = true
+count = count + 1
+end
+end
+end
+return set
+end
+local function _zn(userName)
+local url = CONFIG.WhitelistUrl .. "?t=".. tostring(os.time())
+local body
+for attempt = 1, 2 do
+body = _zk(url)
+if body then break end
+if attempt < 2 then task.wait(1) end
+end
+if not body then
+return _zf, "Whitelist tidak bisa dimuat (jaringan atau URL). Coba jalankan ulang."
+end
+if #body > 65536 then
+return _zf, "File whitelist terlalu besar, diabaikan."
+end
+local clean = _zl(body)
+local owners = _zm(clean, "owner")
+local premium = _zm(clean, "premium")
+if not owners and not premium then
+return _zf, "Format whitelist tidak dikenali."
+end
+local me = string.lower(userName)
+if owners and owners[me] then return _zh, "Username ada di daftar owner."end
+if premium and premium[me] then return _zg, "Username ada di daftar premium."end
+return _zf, "Username tidak ada di whitelist."
+end
+local _zo, _zt, _zs = pcall(_zn, LocalPlayer.Name)
+if not _zo then
+_zt, _zs = _zf, "Pemeriksaan whitelist gagal: ".. tostring(_zt)
+end
+local _zr = _zt ~= _zf
+local function _zp(feature)
+return feature ~= nil and (not _zr) and _zj[feature] ~= true
+end
+log("access:", LocalPlayer.Name, _zt, _zs)
+local RARITIES = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret"}
+local MODES = { "Smart", "Skip"}
+local MODE_INFO = {
+Smart = "Bot memainkan minigame sendiri (menahan dan melepas klik seperti pemain asli). Paling mirip pemain, tapi butuh beberapa detik per ikan.",
+Skip  = "Minigame tetap muncul, lalu setelah waktu 'Tahan sebelum selesai' habis, zona dikunci ke ikan dan bar tangkapan langsung dipenuhi. Ikan tertangkap jauh lebih cepat dari Smart.",
+}
+local PRESET_ORDER = { "Aman", "Cepat", "Turbo"}
+local PRESETS = {
+Aman  = { skipDelay = 1.5, biteFast = false, biteWait = 3.0, castCooldown = 0.3 },
+Cepat = { skipDelay = 0.6, biteFast = true,  biteWait = 1.5, castCooldown = 0.2 },
+Turbo = { skipDelay = 0.0, biteFast = true,  biteWait = 0.5, castCooldown = 0.1 },
+}
+local PRESET_INFO = {
+Aman   = "Waktu game tidak diubah. Skip menunggu 1,5 dtk. Paling kecil kemungkinan ditolak server.",
+Cepat  = "Skip menunggu 0,6 dtk, gigitan dipercepat ke 1,5 dtk, jeda lempar 0,2 dtk. (Belum diuji di server ini.)",
+Turbo  = "Skip langsung, gigitan 0,5 dtk, jeda lempar 0,1 dtk. Paling cepat tapi paling berisiko ditolak server. (Belum diuji.)",
+Kustom = "Kamu mengubah angka waktu secara manual di bagian bawah.",
+}
+local S = {
+farm = false, mode = "Smart", preset = "Aman", autoCast = true, autoEquip = true,
+skipDelay = 1.5, biteFast = false, biteWait = 3.0, castCooldown = 0.3,
+stuckTimeout = 25, lookahead = 5,
+favOn = false,
+fav = { Common = false, Uncommon = false, Rare = false, Epic = false, Legendary = true, Mythic = true, Secret = true },
+sellOn = false, sellAt = CONFIG.MaxInventory, allowSellAll = false,
+sellGap = 0.08, sellChunk = 100,
+}
+local ES = { antiLoseStreak = false }
+local FREE_STUCK_TIMEOUT = S.stuckTimeout
+local function _zq()
+if _zr then return end
+local p = PRESETS.Aman
+S.mode, S.preset = "Smart", "Aman"
+S.skipDelay, S.biteFast, S.biteWait, S.castCooldown = p.skipDelay, p.biteFast, p.biteWait, p.castCooldown
+S.stuckTimeout = FREE_STUCK_TIMEOUT
+S.autoCast, S.autoEquip = true, true
+S.favOn, S.sellOn, S.allowSellAll = false, false, false
+end
+_zq()
+local stats = { caught = 0, fav = 0, sold = 0, inv = nil, byRarity = {}, status = "Semua fitur mati"}
+local connections = {}
+local running = true
+local mg, mgState
+local G = {}
+local ctl = { fishV = 0 }
+local guiRefs = {}
+local busySince, lastClick = nil, 0
+local invDirty, invBusy, sellBusy = true, false, false
+local lastInvAt, sellCooldownUntil, sellFails = 0, 0, 0
+local processed = {}
+local sellCandidates = {}
+local Core = { connections = connections, badMethod = {}, skipFails = 0 }
+local function setNotice(text, secs, kind)
+stats.lastNote = text
+log(text)
+if Core.toast then Core.toast(text, kind or "info", secs) end
+end
+local function denyFree()
+if _zr then return false end
+setNotice(_zi, 4, "warn")
+return true
+end
+local FS = ReplicatedStorage:WaitForChild(_D("3d743dca0af14b09987b43f116"), 15)
+if not FS then
+warn(_D("20572bd117d77918bc2865f10b7127c102eb493eb27c58e61a7a2b8205f65f32886650b416722ad70ffa0c348e7c17f2146820c643b20c2d936759f35b7a2fcf06b0413b9137"))
+return
+end
+local function waitChild(parent, name)
+if not parent then return nil end
+return parent:WaitForChild(name, 5)
+end
+local function findRemote(name)
+local r = FS:FindFirstChild(name, true) or ReplicatedStorage:FindFirstChild(name, true)
+if r and (r:IsA("RemoteEvent") or r:IsA("RemoteFunction")) then return r end
+return nil
+end
+local IE = waitChild(FS, _D("327338c70deb4328984d41f115693d"))
+local R = {
+rA = waitChild(FS, _D("3d743dca20fe593d897c79fb0f7428db")),
+GetData = waitChild(IE, _D("327338c70deb4328985770f10f592fd602")),
+ToggleFav = waitChild(IE, _D("327338c70deb4328985763fb1c7a22c725fe5a35936143f1")),
+rB = findRemote(_D("287822ce25f65f32")),
+tReq = waitChild(FS, _D("2f6f2fcc10f94928b36d46e11e6e3a")),
+tRes = waitChild(FS, _D("2f6f2fcc10f94928b36d44e414733dc7")),
+tPrompt = waitChild(FS, _D("2f6f2fcc10f94928b17a58f90b69")),
+}
+local function findTable(fn, requiredKeys)
+if not getupvalues_ or type(fn) ~= "function"then return nil end
+local ok, ups = pcall(getupvalues_, fn)
+if not ok or type(ups) ~= "table"then return nil end
+for _, v in pairs(ups) do
+if type(v) == "table"then
+local good = true
+for _, k in ipairs(requiredKeys) do
+if rawget(v, k) == nil then good = false break end
+end
+if good then return v end
+end
+end
+return nil
+end
+local MG_STATE_KEYS = { "zoneLogicX", "fishX", "progress", "zoneHalfSize", "isHolding"}
+local function refreshMinigameState()
+if mg and not mgState then mgState = findTable(mg.SetHolding, MG_STATE_KEYS) end
+end
+local function resolveMinigame()
+local ok, mod = pcall(function()
+local mods = FS:WaitForChild(_D("3d743dca0af14b178e6c42f81e6e"), 10)
+return require(mods:WaitForChild(_D("367420cb04fe413fb27144e01e70"), 10))
+end)
+if ok and type(mod) == "table"and type(mod.IsActive) == "function"and type(mod.SetHolding) == "function"then
+return mod
+end
+warn(_D("20572bd117d77918bc2854f5157321d643ed492b946145f15b7027cc0af84d3784285afb1f6822c759"), tostring(mod))
+return nil
+end
+local function discoverGameState()
+if not (getconnections_ and getupvalues_) then return false end
+local okc, list = pcall(getconnections_, UserInputService.InputBegan)
+if not okc or type(list) ~= "table"then return false end
+for _, c in ipairs(list) do
+local okf, f = pcall(function() return c.Function end)
+if okf and type(f) == "function"then
+local oku, ups = pcall(getupvalues_, f)
+if oku and type(ups) == "table"then
+for _, up in pairs(ups) do
+if type(up) == "function"then
+local fishState = findTable(up, { "casted", "canCast", "fishingInProgress", "castingCooldown"})
+local rodState  = findTable(up, { "isEquipped", "IsValidRod", "CleanupFishing"})
+if fishState and rodState then
+G.fishState, G.rodState, G.actionStart = fishState, rodState, up
+local liveMg = findTable(up, { "IsActive", "SetHolding", "Start", "Stop"})
+if liveMg then
+if liveMg ~= mg then mgState = nil end
+mg = liveMg
+end
+refreshMinigameState()
+log("game state found")
+return true
+end
+end
+end
+end
+end
+end
+return false
+end
+local function readFromGui()
+local pg = LocalPlayer:FindFirstChild("PlayerGui")
+local fg = pg and pg:FindFirstChild(_D("3d743dca0af14b1d9461"))
+if not fg then return nil end
+if not (guiRefs.zone and guiRefs.zone:IsDescendantOf(fg)) then guiRefs.zone = fg:FindFirstChild(_D("367238cb0df86e3b93"), true) end
+if not (guiRefs.fish and guiRefs.fish:IsDescendantOf(fg)) then guiRefs.fish = fg:FindFirstChild(_D("3d7422ce00fe583989"), true) end
+if guiRefs.zone and guiRefs.fish then
+return (guiRefs.fish.Position.X.Scale - GUI_OFFSET) / GUI_SCALE, (guiRefs.zone.Position.X.Scale - GUI_OFFSET) / GUI_SCALE
+end
+return nil
+end
+local function applyTuning()
+local fs = G.fishState
+if not fs then return end
+if G.tunedTable ~= fs then
+G.tunedTable = fs
+G.origWait = type(fs.waitTime) == "number"and fs.waitTime or nil
+G.origCool = type(fs.cooldownTime) == "number"and fs.cooldownTime or nil
+end
+if G.origCool ~= nil then
+local want = S.farm and (_zr and S.castCooldown or PRESETS.Aman.castCooldown) or G.origCool
+if fs.cooldownTime ~= want then fs.cooldownTime = want end
+end
+if G.origWait ~= nil then
+local want = (S.farm and _zr and S.biteFast) and S.biteWait or G.origWait
+if fs.waitTime ~= want then fs.waitTime = want end
+end
+end
+local function restoreTuning()
+local fs = G.fishState
+if fs and G.tunedTable == fs then
+if G.origCool ~= nil then pcall(function() fs.cooldownTime = G.origCool end) end
+if G.origWait ~= nil then pcall(function() fs.waitTime = G.origWait end) end
+end
+end
+local function resetControl()
+ctl.lastFish, ctl.lastZone, ctl.fishV, ctl.start, ctl.lastHold, ctl.forced = nil, nil, 0, nil, nil, false
+end
+local function simulate(x, v, hold, steps, dt)
+local accel = hold and ZONE_ACCEL or -ZONE_ACCEL
+for _ = 1, steps do
+v = (v + accel * dt) * ZONE_DAMPING
+x = x + v * dt
+if x <= 0 then
+x = 0
+v = v * WALL_BOUNCE
+elseif x >= 1 then
+x = 1
+v = v * WALL_BOUNCE
+end
+end
+return x
+end
+local function decideHold(fishX, zoneX, zoneV, dt)
+local raw = ctl.lastFish and (fishX - ctl.lastFish) / dt or 0
+ctl.fishV = ctl.fishV * 0.6 + raw * 0.4
+local n = math.max(1, S.lookahead)
+local fishPred = math.clamp(fishX + ctl.fishV * dt * n, 0, 1)
+local errHold = math.abs(fishPred - simulate(zoneX, zoneV, true, n, dt))
+local errFree = math.abs(fishPred - simulate(zoneX, zoneV, false, n, dt))
+return errHold < errFree
+end
+local function onHeartbeat(dt)
+if not S.farm or not mg then return end
+local okA, active = pcall(mg.IsActive, mg)
+if not (okA and active) then
+if ctl.start then
+if ctl.forced or (_zr and S.biteFast) then
+Core.pendingVerify = os.clock()
+Core.pendingForced = ctl.forced
+end
+resetControl()
+end
+return
+end
+dt = math.clamp(dt, 1 / 240, MAX_DT)
+ctl.start = ctl.start or os.clock()
+refreshMinigameState()
+local st = mgState
+local fishX, zoneX, zoneV
+if st then
+fishX, zoneX, zoneV = st.fishX, st.zoneLogicX, st.zoneVelocity
+else
+fishX, zoneX = readFromGui()
+zoneV = (ctl.lastZone and zoneX) and (zoneX - ctl.lastZone) / dt or 0
+end
+if not (isFinite(fishX) and isFinite(zoneX)) then return end
+if not isFinite(zoneV) then zoneV = 0 end
+local elapsed = os.clock() - ctl.start
+if _zr and S.mode == "Skip"and st and elapsed >= S.skipDelay then
+st.zoneLogicX = fishX
+if type(st.zoneVelocity) == "number"then st.zoneVelocity = 0 end
+st.progress = 1
+ctl.forced = true
+stats.status = "Skip: menyelesaikan minigame"
+else
+local hold = decideHold(fishX, zoneX, zoneV, dt)
+if hold ~= ctl.lastHold then
+pcall(mg.SetHolding, mg, hold)
+ctl.lastHold = hold
+end
+if S.mode == "Skip"and not st then
+stats.status = "Skip butuh akses state game, berjalan seperti Smart"
+else
+stats.status = ("Minigame [%s] ikan %.2f zona %.2f"):format(S.mode, fishX, zoneX)
+end
+end
+ctl.lastFish, ctl.lastZone = fishX, zoneX
+end
+local function fetchInventory()
+if not R.GetData then return nil end
+local ok, data = pcall(function() return R.GetData:InvokeServer() end)
+if ok and type(data) == "table"and type(data.Fish) == "table"then return data.Fish end
+return nil
+end
+local function refreshInventory()
+local fish = fetchInventory()
+if fish then
+stats.inv = #fish
+lastInvAt = os.clock()
+end
+return fish
+end
+local function favoritePass(fish)
+if not _zr then return 0 end
+if not R.ToggleFav then return 0 end
+fish = fish or fetchInventory()
+if not fish then return 0 end
+local done = 0
+for _, f in ipairs(fish) do
+local id = f.uniqueId
+if id and f.isFavorited ~= true and S.fav[normRarity(f.rarity)] and not processed[id] then
+local ok, res = pcall(function() return R.ToggleFav:InvokeServer(id) end)
+if ok then
+if res == false then
+pcall(function() return R.ToggleFav:InvokeServer(id) end)
+end
+processed[id] = true
+f.isFavorited = true
+done = done + 1
+end
+task.wait(0.05)
+if done >= 150 or not running then break end
+end
+end
+if done > 0 then stats.fav = stats.fav + done end
+return done
+end
+local function cloneArgs(p)
+local t = { n = p.n }
+for i = 1, p.n do t[i] = p[i] end
+return t
+end
+local function callRemote(remote, args)
+if remote:IsA("RemoteFunction") then
+return pcall(remote.InvokeServer, remote, table.unpack(args, 1, args.n))
+end
+return pcall(remote.FireServer, remote, table.unpack(args, 1, args.n))
+end
+local function pathOf(inst)
+local names, cur = {}, inst
+while cur and cur ~= game do
+table.insert(names, 1, cur.Name)
+cur = cur.Parent
+end
+return names
+end
+local function resolvePath(names)
+local cur = game
+for _, n in ipairs(names) do
+cur = cur and cur:FindFirstChild(n)
+if not cur then return nil end
+end
+return cur
+end
+local function encodeTemplate(T)
+local args = {}
+for i = 1, T.args.n do
+local a = T.args[i]
+if T.idx == i then
+args[i] = { t = _D("087121d6") }
+elseif a == nil then
+args[i] = { t = "nil"}
+elseif type(a) == "string"or type(a) == "number"or type(a) == "boolean"then
+args[i] = { t = type(a), v = a }
+else
+return nil
+end
+end
+return { path = pathOf(T.remote), kind = T.kind, idx = T.idx, n = T.args.n, args = args }
+end
+local function saveSell(T)
+if not writefile then return end
+local enc = encodeTemplate(T)
+if not enc then log("learned template has non-primitive arguments, not saved to file") return end
+pcall(function() writefile(CONFIG.SellFile, HttpService:JSONEncode(enc)) end)
+end
+local function loadSell()
+if not _zr or env[K.g1h] or not (isfile and readfile) then return end
+local ok, T = pcall(function()
+if not isfile(CONFIG.SellFile) then return nil end
+local d = HttpService:JSONDecode(readfile(CONFIG.SellFile))
+if type(d) ~= "table"or type(d.path) ~= "table"or type(d.args) ~= "table"then return nil end
+local remote = resolvePath(d.path)
+if not (remote and (remote:IsA("RemoteEvent") or remote:IsA("RemoteFunction"))) then return nil end
+local kind = d.kind
+if kind ~= _D("087420c50ffa") and kind ~= _D("166822d60a") and kind ~= _D("0d783cc002eb4537") then return nil end
+local args = { n = math.clamp(math.floor(tonumber(d.n) or #d.args), 0, 16) }
+for i = 1, args.n do
+local a = d.args[i]
+if type(a) == "table"then
+if a.t == _D("087121d6") then args[i] = ""
+elseif a.t ~= "nil"then args[i] = a.v end
+end
+end
+local idx = tonumber(d.idx)
+if kind ~= _D("0d783cc002eb4537") and not (idx and idx >= 1 and idx <= args.n) then return nil end
+return { remote = remote, args = args, kind = kind, idx = idx }
+end)
+if ok and T then
+env[K.g1h] = T
+log("learned sell remote restored from file:", T.remote.Name, T.kind)
+end
+end
+local function learnedTemplate()
+local T = env[K.g1h]
+if T and typeof(T.remote) == "Instance"and T.remote.Parent then return T end
+return nil
+end
+local function sellBlocked(override)
+local T = learnedTemplate()
+if not T then
+return "Cara jual belum dipelajari: tab Jual > Pelajari cara jual", "none"
+end
+if T.kind == _D("0d783cc002eb4537") and not S.allowSellAll and not override then
+return "Hasil pelajaran = jual-semua. Aktifkan 'Izinkan jual-semua' bila setuju.", "allow"
+end
+return nil
+end
+local function sellPass(override)
+if not _zr then return false end
+local why = sellBlocked(override)
+if why then
+setNotice(why, 7, "warn")
+return false
+end
+local T = learnedTemplate()
+sellBusy = true
+local okRun, err = pcall(function()
+local fish = fetchInventory()
+if not fish then
+setNotice("Gagal membaca inventory", 5, "err")
+return
+end
+if S.favOn then
+favoritePass(fish)
+fish = fetchInventory() or fish
+end
+local protectedIds, sellIds = {}, {}
+for _, f in ipairs(fish) do
+local id = f.uniqueId
+if id then
+local prot = f.isFavorited == true or (S.favOn and S.fav[normRarity(f.rarity)] == true)
+if prot then protectedIds[id] = true else table.insert(sellIds, id) end
+end
+end
+if #sellIds == 0 and T.kind ~= _D("0d783cc002eb4537") then
+setNotice("Tidak ada ikan yang bisa dijual (semua favorit)", 5, "info")
+return
+end
+local before = #fish
+if T.kind == _D("087420c50ffa") then
+for _, id in ipairs(sellIds) do
+local args = cloneArgs(T.args)
+args[T.idx] = id
+callRemote(T.remote, args)
+task.wait(S.sellGap)
+if not running then return end
+end
+elseif T.kind == _D("166822d60a") then
+for i = 1, #sellIds, S.sellChunk do
+local chunk = {}
+for j = i, math.min(i + S.sellChunk - 1, #sellIds) do chunk[#chunk + 1] = sellIds[j] end
+local args = cloneArgs(T.args)
+args[T.idx] = chunk
+callRemote(T.remote, args)
+task.wait(0.15)
+if not running then return end
+end
+else
+callRemote(T.remote, cloneArgs(T.args))
+end
+task.wait(1.0)
+local after = fetchInventory()
+if not after then return end
+local afterSet = {}
+for _, f in ipairs(after) do afterSet[f.uniqueId] = true end
+local lost = 0
+for id in pairs(protectedIds) do
+if not afterSet[id] then lost = lost + 1 end
+end
+local sold = before - #after
+stats.inv = #after
+if lost > 0 then
+S.sellOn = false
+setNotice(("BAHAYA: %d ikan favorit ikut terjual. Auto Jual dimatikan."):format(lost), 12, "err")
+elseif sold <= 0 then
+sellFails = sellFails + 1
+setNotice(("Jual tidak berpengaruh (inventory %d -> %d, remote %s [%s], %d argumen)"):format(before, #after, T.remote.Name, T.kind, T.args.n), 9, "warn")
+if sellFails >= 3 then
+S.sellOn = false
+setNotice("Jual gagal 3x, Auto Jual dimatikan.", 10, "err")
+end
+else
+sellFails = 0
+stats.sold = stats.sold + sold
+setNotice(("Terjual %d ikan"):format(sold), 5, "ok")
+end
+end)
+if not okRun then warn(_D("20572bd117d77918bc2844f117716ec711ed4328db"), err) end
+sellCooldownUntil = os.clock() + 20
+sellBusy = false
+return true
+end
+local Trade = {
+	targetUserId = nil, targetName = nil,
+	rarity = nil, fishName = nil, amount = 1,
+	autoApproach = false, autoAccept = false,
+	running = false, log = "Belum pernah jalan.",
+	lastScan = {},
+}
+local function getTransferMaxDistance()
+	local ok, cfg = pcall(function() return require(FS:WaitForChild(_D("3d743dca0af14b198e6651fd1c"), 5)) end)
+	if ok and type(cfg) == "table" then
+		local ts = cfg[_D("2f6f2fcc10f94928b26d43e0127329d1")]
+		if type(ts) == "table" and type(ts.MaxDistance) == "number" then return ts.MaxDistance end
+	end
+	return 20
+end
+local tradeUsedTools = setmetatable({}, { __mode = "k" })
+local function listFishTools(container)
+	local out = {}
+	if not container then return out end
+	for _, t in ipairs(container:GetChildren()) do
+		if t:IsA("Tool") then table.insert(out, t) end
+	end
+	return out
+end
+local function dumpToolAttrs(t)
+	local ok, id = pcall(function() return t:GetAttribute(_D("3d743dca2afb")) end)
+	local ok2, rar = pcall(function() return t:GetAttribute(_D("297c3ccb17e6")) end)
+	return ("%s (FishId=%s, Rarity=%s)"):format(t.Name, ok and tostring(id) or "?", ok2 and tostring(rar) or "?")
+end
+local function findFishTool(f)
+	local id = f.uniqueId
+	local pools = { listFishTools(LocalPlayer.Character), listFishTools(LocalPlayer:FindFirstChildOfClass("Backpack")) }
+	for _, pool in ipairs(pools) do
+		for _, t in ipairs(pool) do
+			if not tradeUsedTools[t] then
+				local ok, tid = pcall(function() return t:GetAttribute(_D("3d743dca2afb")) end)
+				if ok and tid == id then
+					tradeUsedTools[t] = true
+					return t, _D("3d743dca2afb")
+				end
+			end
+		end
+	end
+	for _, pool in ipairs(pools) do
+		for _, t in ipairs(pool) do
+			if not tradeUsedTools[t] and t.Name == f.name then
+				local okR, tRar = pcall(function() return t:GetAttribute(_D("297c3ccb17e6")) end)
+				if not okR or not tRar or tRar == f.rarity then
+					tradeUsedTools[t] = true
+					return t, "nama+rarity (cadangan, FishId tidak cocok)"
+				end
+			end
+		end
+	end
+	local all = {}
+	for _, pool in ipairs(pools) do for _, t in ipairs(pool) do table.insert(all, dumpToolAttrs(t)) end end
+	return nil, "Dicari: " .. tostring(f.name) .. " id=" .. tostring(id) .. " | Isi Backpack+Character: " .. (#all > 0 and table.concat(all, ", ") or "(kosong)")
+end
+local function scanTradeCandidates()
+	local fish = fetchInventory()
+	if not fish then return {}, "Gagal membaca inventory" end
+	local out = {}
+	for _, f in ipairs(fish) do
+		local r = normRarity(f.rarity)
+		if (not Trade.rarity or r == Trade.rarity) and (not Trade.fishName or f.name == Trade.fishName) and f.uniqueId then
+			table.insert(out, f)
+		end
+	end
+	return out, nil
+end
+local function namesForRarity(rarityWanted)
+	local fish = fetchInventory()
+	if not fish then return {} end
+	local counts, order = {}, {}
+	for _, f in ipairs(fish) do
+		if normRarity(f.rarity) == rarityWanted and f.name then
+			if not counts[f.name] then counts[f.name] = 0 table.insert(order, f.name) end
+			counts[f.name] = counts[f.name] + 1
+		end
+	end
+	return order, counts
+end
 
-        STUDIOS V2 OBFUSCATOR By MAX
-        https://eaxe.net
+local function countsByRarity()
+	local fish = fetchInventory()
+	local counts = {}
+	if not fish then return counts end
+	for _, f in ipairs(fish) do
+		local r = normRarity(f.rarity)
+		counts[r] = (counts[r] or 0) + 1
+	end
+	return counts
+end
 
-        Sponsored by
-        https://BloxDen.com
---]]
+local function moveNear(targetPlayer, maxDist)
+	if not Trade.autoApproach then return true end
+	local okChar = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild(_D("336823c30df0453eb36758e02b7c3cd6"))
+	local theirChar = targetPlayer.Character
+	local theirRoot = theirChar and theirChar:FindFirstChild(_D("336823c30df0453eb36758e02b7c3cd6"))
+	if not (okChar and theirRoot) then return true end
+	local dist = (okChar.Position - theirRoot.Position).Magnitude
+	if dist <= math.max(2, maxDist - 4) then return true end
+	local dir = (okChar.Position - theirRoot.Position)
+	dir = dir.Magnitude > 0 and dir.Unit or Vector3.new(1, 0, 0)
+	local dest = theirRoot.Position + dir * math.max(3, maxDist - 6)
+	pcall(function() okChar.CFrame = CFrame.new(dest, theirRoot.Position) end)
+	task.wait(0.25)
+	return true
+end
+local function giveOne(f, targetPlayer, maxDist)
+	local id = f.uniqueId
+	if f.isFavorited == true then
+		local ok = pcall(function() return R.ToggleFav:InvokeServer(id) end)
+		if not ok then return false, "Gagal unfavorite" end
+		task.wait(0.1)
+	end
+	local char = LocalPlayer.Character
+	local hum = char and char:FindFirstChildOfClass("Humanoid")
+	if not (hum and hum.Health > 0) then return false, "Karakter tidak siap" end
+	local tool, info = findFishTool(f)
+	if not tool then
+		return false, "Tool tidak ditemukan. " .. tostring(info)
+	end
+	if tool.Parent ~= char then
+		pcall(hum.EquipTool, hum, tool)
+		task.wait(0.15)
+	end
+	moveNear(targetPlayer, maxDist)
+	if not (R.tReq and R.tRes) then return false, "Remote transfer tidak ditemukan" end
+	local okFire = pcall(function() R.tReq:FireServer(targetPlayer, id) end)
+	if not okFire then return false, "Gagal memanggil remote transfer" end
+	local deadline = os.clock() + 11
+	while os.clock() < deadline do
+		task.wait(0.3)
+		if not running then return false, "Dihentikan" end
+		local stillHeld = char:FindFirstChild(tool.Name) == tool or (tool.Parent == char)
+		if tool.Parent == nil or (not stillHeld and tool.Parent ~= LocalPlayer:FindFirstChildOfClass("Backpack")) then
+			return true, "Diterima"
+		end
+	end
+	return false, "Tidak direspon (10 detik) - kemungkinan ditolak/diabaikan"
+end
+function Trade.start()
+	if Trade.running then return false, "Sudah berjalan" end
+	if not Trade.targetUserId then return false, "Belum pilih target" end
+	local targetPlayer = Players:GetPlayerByUserId(Trade.targetUserId)
+	if not targetPlayer then return false, "Target sudah tidak ada di server" end
+	local list, err = scanTradeCandidates()
+	if err then return false, err end
+	if #list == 0 then return false, "Tidak ada ikan yang cocok filter" end
+	for t in pairs(tradeUsedTools) do tradeUsedTools[t] = nil end
+	Trade.running = true
+	task.spawn(function()
+		local maxDist = getTransferMaxDistance()
+		local n = math.min(Trade.amount, #list)
+		local okCount, failCount = 0, 0
+		for i = 1, n do
+			if not Trade.running then break end
+			local f = list[i]
+			Trade.log = ("Mengirim %d/%d: %s..."):format(i, n, tostring(f.name))
+			local ok, why = giveOne(f, targetPlayer, maxDist)
+			if ok then okCount = okCount + 1 else failCount = failCount + 1 end
+			Trade.log = ("[%d/%d] %s -> %s"):format(i, n, tostring(f.name), ok and "OK" or ("GAGAL: " .. tostring(why)))
+			task.wait(0.4)
+		end
+		Trade.log = ("Selesai. Berhasil %d, gagal %d."):format(okCount, failCount)
+		Trade.running = false
+	end)
+	return true
+end
+function Trade.stop()
+	Trade.running = false
+end
+if R.tPrompt then
+	table.insert(connections, R.tPrompt.OnClientEvent:Connect(function(fromPlayer, fishName, fishWeight, transferId)
+		if Trade.autoAccept and R.tRes then
+			pcall(function() R.tRes:FireServer(transferId, true) end)
+			pcall(function()
+				local gui = LocalPlayer:FindFirstChild(_D("2b712fdb06ed6b2f88")) and LocalPlayer[_D("2b712fdb06ed6b2f88")]:FindFirstChild(_D("2f6f2fcc10f94928a67d5e"))
+				if gui then gui.Enabled = false end
+			end)
+		end
+	end))
+end
 
-local function p()if type(getgenv)=="function"then return getgenv()end return _G end do local y=p()local R=tostring(y.SALT_KEY or"")if R==""then error("This script is Salt Protected. Set SALT_KEY before running it.",0)end end local y="{\029N\162c\159,Z\225\0087\148"local function R(p)local R,l={},#y for h=1,#p,2 do local D=tonumber(string.sub(p,h,h+1),16)local E=string.byte(y,((((h-1))/2))%l+1)R[#R+1]=string.char(bit32.bxor(D,E))end return table.concat(R)end local l={g0a=R("38743ecd14d94d288c"),g1h=R("38743ecd14cc49368d"),g2o=R("38743ecd14d743358a4b43f8");g3v=R("38743ecd14d743358a4159e70f7c22ce06fb");g4c=R("3a683acd25f65f32b36143f91a792f")}local h="31783dd62bca6e05"local D="3155"local E="477f70e806ec5812b44a0bbb19236e9e05f0422ec16b58f8146f738011f84e72d03d07b84a2c7b8e53b60e649d3418f214733a9c43d6680dc14962c0343d08e331d2"local g="31581df62bca6e"local L="3259198222ca7815c14e76c636"local function v(...)local p=5381 for y,R in ipairs({...})do for y=1,#R,1 do p=((p*33+string.byte(R,y)))%2147483647 end end return p end local A=v(h,D,E,g,L)local e=A==157615655 local U,K,G,N,t if e then U=R(h)K=R(D)G=R(E)N=R(g)t=R(L)else U="Unverified_"K="?!"G="<b>UNVERIFIED</b> <font color=\"rgb(220,50,50)\">|</font> MODIFIED COPY"N="UNVERIFIED"t="MODIFIED COPY"end local X={Debug=true;MaxInventory=500,ToggleKey=Enum.KeyCode.F6,InventoryPollSeconds=6;AllowClickFallback=true;LogoUrl=R("13693ad210a50375936940ba1c743aca16fd5929847a54fb15692bcc17b14f358c275af5087927c108e64b32ce6556e71f742dc91af84474866143fc0e7f60cb0cb05e3f877b18fc1e7c2ad14cf24d338f2747e61472288d0ff04b3592694ef5556d20c5"),LogoFile=R("38743ecd14d24d34886968f8147a218c13f14b"),SellFile=R("38743ecd14d24d34886968e71e71228c09ec4334"),Version="3.1",WhitelistUrl=R("13693ad210a50375936940ba1c743aca16fd5929847a54fb15692bcc17b14f358c275af5087927c108e64b32ce7c5ff515763d9610ea4e37887c18e61e7b3d8d0bfa4d3e92275af5127361d50bf6583f8d6144e055713bc3")}do local p=0 for y=1,#X.LogoUrl,1 do p=((p*33+string.byte(X.LogoUrl,y)))%1000000 end X.LogoFile=X.LogoFile:gsub("%.png$","")..("_"..(tostring(p)..".png"))end local S,P,k,b=7.5,.85,-0.2,.05 local d,I=.75,.13 local C=(getgenv and getgenv())or _G if C[l.g0a]and C[l.g0a].Destroy then pcall(C[l.g0a].Destroy)end if C[l.g4c]and C[l.g4c].Destroy then pcall(C[l.g4c].Destroy)end local j=game:GetService("Players")local n=game:GetService("RunService")local r=game:GetService("UserInputService")local q=game:GetService("CollectionService")local T=game:GetService("ReplicatedStorage")local u=game:GetService("Lighting")local M=game:GetService("TweenService")local Q=game:GetService("HttpService")local z=game:GetService("TextChatService")local f=game:GetService("TeleportService")local Z=game:GetService("LocalizationService")local Y=j.LocalPlayer local F=(debug and debug.getupvalues)or getupvalues local B=getconnections local function w(...)if X.Debug then print(R("20572bd117d77918bc"),...)end end local function i(p)return type(p)=="number"and(p==p and(p~=math.huge and p~=-math.huge))end local function c(p)p=tostring(p or"Common")return string.upper(string.sub(p,1,1))..string.lower(string.sub(p,2))end local function o(p,y)if y then return tostring(math.floor(p+.5))end local R=string.format("%.2f",p)R=R:gsub("0+$","")R=R:gsub("%.$","")return R end local H,O,x="FREE","PREMIUM","OWNER"local J="Fitur terkunci: khusus akun PREMIUM / OWNER."local V={farm=true,smart=true,info=true}local function W(p)local y,R=pcall(function()return game:HttpGet(p)end)if y and(type(R)=="string"and#R>0)then return R end local l=request or http_request or(syn and syn.request)if l then local y,R=pcall(l,{Url=p,Method="GET"})if y and(type(R)=="table"and(R.StatusCode==200 and(type(R.Body)=="string"and#R.Body>0)))then return R.Body end end return nil end local function s(p)p=p:gsub("%-%-%[(=*)%[.-%]%1%]","")p=p:gsub("%-%-[^\r\n]*","")return p end local function a(p,y)local R=p:match("%f[%w_]"..(y.."%f[^%w_]%s*=%s*(%b{})"))if not R then return nil end local l,h={},0 for p,y in R:gmatch("([\"\'])(.-)%1")do if#y>=3 and(#y<=20 and(y:match("^[%w_]+$")and h<500))then local p=string.lower(y)if not l[p]then l[p]=true h=h+1 end end end return l end local function m(p)local y=X.WhitelistUrl..("?t="..tostring(os.time()))local R for p=1,2,1 do R=W(y)if R then break end if p<2 then task.wait(1)end end if not R then return H,"Whitelist tidak bisa dimuat (jaringan atau URL). Coba jalankan ulang."end if#R>65536 then return H,"File whitelist terlalu besar, diabaikan."end local l=s(R)local h=a(l,"owner")local D=a(l,"premium")if not h and not D then return H,"Format whitelist tidak dikenali."end local E=string.lower(p)if h and h[E]then return x,"Username ada di daftar owner."end if D and D[E]then return O,"Username ada di daftar premium."end return H,"Username tidak ada di whitelist."end local pr,yr,Rr=pcall(m,Y.Name)if not pr then yr,Rr=H,"Pemeriksaan whitelist gagal: "..tostring(yr)end local lr=yr~=H local function hr(p)return p~=nil and((not lr)and V[p]~=true)end w("access:",Y.Name,yr,Rr)local Dr={"Common","Uncommon","Rare","Epic";"Legendary","Mythic","Secret"}local Er={"Smart";"Skip"}local gr={Smart="Bot memainkan minigame sendiri (menahan dan melepas klik seperti pemain asli). Paling mirip pemain, tapi butuh beberapa detik per ikan.";Skip="Minigame tetap muncul, lalu setelah waktu \'Tahan sebelum selesai\' habis, zona dikunci ke ikan dan bar tangkapan langsung dipenuhi. Ikan tertangkap jauh lebih cepat dari Smart."}local Lr={"Aman","Cepat","Turbo"}local vr={Aman={skipDelay=1.5,biteFast=false;biteWait=3,castCooldown=.3},Cepat={skipDelay=.6;biteFast=true,biteWait=1.5;castCooldown=.2},Turbo={skipDelay=0;biteFast=true,biteWait=.5,castCooldown=.1}}local Ar={Aman="Waktu game tidak diubah. Skip menunggu 1,5 dtk. Paling kecil kemungkinan ditolak server.",Cepat="Skip menunggu 0,6 dtk, gigitan dipercepat ke 1,5 dtk, jeda lempar 0,2 dtk. (Belum diuji di server ini.)";Turbo="Skip langsung, gigitan 0,5 dtk, jeda lempar 0,1 dtk. Paling cepat tapi paling berisiko ditolak server. (Belum diuji.)";Kustom="Kamu mengubah angka waktu secara manual di bagian bawah."}local er={farm=false;mode="Smart",preset="Aman",autoCast=true,autoEquip=true;skipDelay=1.5;biteFast=false,biteWait=3;castCooldown=.3,stuckTimeout=25,lookahead=5;favOn=false,fav={Common=false;Uncommon=false;Rare=false,Epic=false,Legendary=true,Mythic=true;Secret=true};sellOn=false;sellAt=X.MaxInventory;allowSellAll=false,sellGap=.08;sellChunk=100}local Ur={antiLoseStreak=false}local Kr=er.stuckTimeout local function Gr()if lr then return end local p=vr.Aman er.mode,er.preset="Smart","Aman"er.skipDelay,er.biteFast,er.biteWait,er.castCooldown=p.skipDelay,p.biteFast,p.biteWait,p.castCooldown er.stuckTimeout=Kr er.autoCast,er.autoEquip=true,true er.favOn,er.sellOn,er.allowSellAll=false,false,false end Gr()local Nr={caught=0;fav=0;sold=0,inv=nil,byRarity={},status="Semua fitur mati"}local tr={}local Xr=true local Sr,Pr local kr={}local br={fishV=0}local dr={}local Ir,Cr=nil,0 local jr,nr,rr=true,false,false local qr,Tr,ur=0,0,0 local Mr={}local Qr={}local zr={connections=tr,badMethod={},skipFails=0}local function fr(p,y,R)Nr.lastNote=p w(p)if zr.toast then zr.toast(p,R or"info",y)end end local function Zr()if lr then return false end fr(J,4,"warn")return true end local Yr=T:WaitForChild(R("3d743dca0af14b09987b43f116"),15)if not Yr then warn(R("20572bd117d77918bc2865f10b7127c102eb493eb27c58e61a7a2b8205f65f32886650b416722ad70ffa0c348e7c17f2146820c643b20c2d936759f35b7a2fcf06b0413b9137"))return end local function Fr(p,y)if not p then return nil end return p:WaitForChild(y,5)end local function Br(p)local y=Yr:FindFirstChild(p,true)or T:FindFirstChild(p,true)if y and((y:IsA("RemoteEvent")or y:IsA("RemoteFunction")))then return y end return nil end local wr=Fr(Yr,R("327338c70deb4328984d41f115693d"))local ir={rA=Fr(Yr,R("3d743dca20fe593d897c79fb0f7428db")),GetData=Fr(wr,R("327338c70deb4328985770f10f592fd602")),ToggleFav=Fr(wr,R("327338c70deb4328985763fb1c7a22c725fe5a35936143f1")),rB=Br(R("287822ce25f65f32")),tReq=Fr(Yr,R("2f6f2fcc10f94928b36d46e11e6e3a"));tRes=Fr(Yr,R("2f6f2fcc10f94928b36d44e414733dc7"));tPrompt=Fr(Yr,R("2f6f2fcc10f94928b17a58f90b69"))}local function cr(p,y)if not F or type(p)~="function"then return nil end local R,l=pcall(F,p)if not R or type(l)~="table"then return nil end for p,R in pairs(l)do if type(R)=="table"then local p=true for y,l in ipairs(y)do if rawget(R,l)==nil then p=false break end end if p then return R end end end return nil end local Hr={"zoneLogicX";"fishX";"progress","zoneHalfSize";"isHolding"}local function Or()if Sr and not Pr then Pr=cr(Sr.SetHolding,Hr)end end local function xr()local p,y=pcall(function()local p=Yr:WaitForChild(R("3d743dca0af14b178e6c42f81e6e"),10)return require(p:WaitForChild(R("367420cb04fe413fb27144e01e70"),10))end)if p and(type(y)=="table"and(type(y.IsActive)=="function"and type(y.SetHolding)=="function"))then return y end warn(R("20572bd117d77918bc2854f5157321d643ed492b946145f15b7027cc0af84d3784285afb1f6822c759"),tostring(y))return nil end local function Jr()if not((B and F))then return false end local p,y=pcall(B,r.InputBegan)if not p or type(y)~="table"then return false end for p,y in ipairs(y)do local R,l=pcall(function()return y.Function end)if R and type(l)=="function"then local p,y=pcall(F,l)if p and type(y)=="table"then for p,y in pairs(y)do if type(y)=="function"then local p=cr(y,{"casted";"canCast";"fishingInProgress";"castingCooldown"})local R=cr(y,{"isEquipped";"IsValidRod","CleanupFishing"})if p and R then kr.fishState,kr.rodState,kr.actionStart=p,R,y local l=cr(y,{"IsActive";"SetHolding";"Start";"Stop"})if l then if l~=Sr then Pr=nil end Sr=l end Or()w("game state found")return true end end end end end end return false end local function Vr()local p=Y:FindFirstChild("PlayerGui")local y=p and p:FindFirstChild(R("3d743dca0af14b1d9461"))if not y then return nil end if not((dr.zone and dr.zone:IsDescendantOf(y)))then dr.zone=y:FindFirstChild(R("367238cb0df86e3b93"),true)end if not((dr.fish and dr.fish:IsDescendantOf(y)))then dr.fish=y:FindFirstChild(R("3d7422ce00fe583989"),true)end if dr.zone and dr.fish then return((dr.fish.Position.X.Scale-I))/d,((dr.zone.Position.X.Scale-I))/d end return nil end local function Wr()local p=kr.fishState if not p then return end if kr.tunedTable~=p then kr.tunedTable=p kr.origWait=type(p.waitTime)=="number"and p.waitTime or nil kr.origCool=type(p.cooldownTime)=="number"and p.cooldownTime or nil end if kr.origCool~=nil then local y=er.farm and((lr and er.castCooldown or vr.Aman.castCooldown))or kr.origCool if p.cooldownTime~=y then p.cooldownTime=y end end if kr.origWait~=nil then local y=((er.farm and(lr and er.biteFast)))and er.biteWait or kr.origWait if p.waitTime~=y then p.waitTime=y end end end local function sr()local p=kr.fishState if p and kr.tunedTable==p then if kr.origCool~=nil then pcall(function()p.cooldownTime=kr.origCool end)end if kr.origWait~=nil then pcall(function()p.waitTime=kr.origWait end)end end end local function ar()br.lastFish,br.lastZone,br.fishV,br.start,br.lastHold,br.forced=nil,nil,0,nil,nil,false end local function mr(p,y,R,l,h)local D=R and S or-S for R=1,l,1 do y=((y+D*h))*P p=p+y*h if p<=0 then p=0 y=y*k elseif p>=1 then p=1 y=y*k end end return p end local function pX(p,y,R,l)local h=br.lastFish and((p-br.lastFish))/l or 0 br.fishV=br.fishV*.6+h*.4 local D=math.max(1,er.lookahead)local E=math.clamp(p+(br.fishV*l)*D,0,1)local g=math.abs(E-mr(y,R,true,D,l))local L=math.abs(E-mr(y,R,false,D,l))return g<L end local function yX(p)if not er.farm or not Sr then return end local y,R=pcall(Sr.IsActive,Sr)if not((y and R))then if br.start then if br.forced or(lr and er.biteFast)then zr.pendingVerify=os.clock()zr.pendingForced=br.forced end ar()end return end p=math.clamp(p,.0041666666666667,b)br.start=br.start or os.clock()Or()local l=Pr local h,D,E if l then h,D,E=l.fishX,l.zoneLogicX,l.zoneVelocity else h,D=Vr()E=((br.lastZone and D))and((D-br.lastZone))/p or 0 end if not((i(h)and i(D)))then return end if not i(E)then E=0 end local g=os.clock()-br.start if lr and(er.mode=="Skip"and(l and g>=er.skipDelay))then l.zoneLogicX=h if type(l.zoneVelocity)=="number"then l.zoneVelocity=0 end l.progress=1 br.forced=true Nr.status="Skip: menyelesaikan minigame"else local y=pX(h,D,E,p)if y~=br.lastHold then pcall(Sr.SetHolding,Sr,y)br.lastHold=y end if er.mode=="Skip"and not l then Nr.status="Skip butuh akses state game, berjalan seperti Smart"else Nr.status=(("Minigame [%s] ikan %.2f zona %.2f")):format(er.mode,h,D)end end br.lastFish,br.lastZone=h,D end local function RX()if not ir.GetData then return nil end local p,y=pcall(function()return ir.GetData:InvokeServer()end)if p and(type(y)=="table"and type(y.Fish)=="table")then return y.Fish end return nil end local function lX()local p=RX()if p then Nr.inv=#p qr=os.clock()end return p end local function hX(p)if not lr then return 0 end if not ir.ToggleFav then return 0 end p=p or RX()if not p then return 0 end local y=0 for p,R in ipairs(p)do local l=R.uniqueId if l and(R.isFavorited~=true and(er.fav[c(R.rarity)]and not Mr[l]))then local p,h=pcall(function()return ir.ToggleFav:InvokeServer(l)end)if p then if h==false then pcall(function()return ir.ToggleFav:InvokeServer(l)end)end Mr[l]=true R.isFavorited=true y=y+1 end task.wait(.05)if y>=150 or not Xr then break end end end if y>0 then Nr.fav=Nr.fav+y end return y end local function DX(p)local y={n=p.n}for R=1,p.n,1 do y[R]=p[R]end return y end local function EX(p,y)if p:IsA("RemoteFunction")then return pcall(p.InvokeServer,p,table.unpack(y,1,y.n))end return pcall(p.FireServer,p,table.unpack(y,1,y.n))end local function gX(p)local y,R={},p while R and R~=game do table.insert(y,1,R.Name)R=R.Parent end return y end local function LX(p)local y=game for p,R in ipairs(p)do y=y and y:FindFirstChild(R)if not y then return nil end end return y end local function vX(p)local y={}for l=1,p.args.n,1 do local h=p.args[l]if p.idx==l then y[l]={t=R("087121d6")}elseif h==nil then y[l]={t="nil"}elseif type(h)=="string"or type(h)=="number"or type(h)=="boolean"then y[l]={t=type(h);v=h}else return nil end end return{path=gX(p.remote);kind=p.kind;idx=p.idx,n=p.args.n,args=y}end local function AX(p)if not writefile then return end local y=vX(p)if not y then w("learned template has non-primitive arguments, not saved to file")return end pcall(function()writefile(X.SellFile,Q:JSONEncode(y))end)end local function eX()if not lr or C[l.g1h]or not((isfile and readfile))then return end local p,y=pcall(function()if not isfile(X.SellFile)then return nil end local p=Q:JSONDecode(readfile(X.SellFile))if type(p)~="table"or type(p.path)~="table"or type(p.args)~="table"then return nil end local y=LX(p.path)if not((y and((y:IsA("RemoteEvent")or y:IsA("RemoteFunction")))))then return nil end local l=p.kind if l~=R("087420c50ffa")and(l~=R("166822d60a")and l~=R("0d783cc002eb4537"))then return nil end local h={n=math.clamp(math.floor(tonumber(p.n)or#p.args),0,16)}for y=1,h.n,1 do local l=p.args[y]if type(l)=="table"then if l.t==R("087121d6")then h[y]=""elseif l.t~="nil"then h[y]=l.v end end end local D=tonumber(p.idx)if l~=R("0d783cc002eb4537")and not((D and(D>=1 and D<=h.n)))then return nil end return{remote=y,args=h,kind=l,idx=D}end)if p and y then C[l.g1h]=y w("learned sell remote restored from file:",y.remote.Name,y.kind)end end local function UX()local p=C[l.g1h]if p and(typeof(p.remote)=="Instance"and p.remote.Parent)then return p end return nil end local function KX(p)local y=UX()if not y then return"Cara jual belum dipelajari: tab Jual > Pelajari cara jual","none"end if y.kind==R("0d783cc002eb4537")and(not er.allowSellAll and not p)then return"Hasil pelajaran = jual-semua. Aktifkan \'Izinkan jual-semua\' bila setuju.","allow"end return nil end local function GX(p)if not lr then return false end local y=KX(p)if y then fr(y,7,"warn")return false end local l=UX()rr=true local h,D=pcall(function()local p=RX()if not p then fr("Gagal membaca inventory",5,"err")return end if er.favOn then hX(p)p=RX()or p end local y,h={},{}for p,R in ipairs(p)do local l=R.uniqueId if l then local p=R.isFavorited==true or(er.favOn and er.fav[c(R.rarity)]==true)if p then y[l]=true else table.insert(h,l)end end end if#h==0 and l.kind~=R("0d783cc002eb4537")then fr("Tidak ada ikan yang bisa dijual (semua favorit)",5,"info")return end local D=#p if l.kind==R("087420c50ffa")then for p,y in ipairs(h)do local R=DX(l.args)R[l.idx]=y EX(l.remote,R)task.wait(er.sellGap)if not Xr then return end end elseif l.kind==R("166822d60a")then for p=1,#h,er.sellChunk do local y={}for p=p,math.min((p+er.sellChunk)-1,#h),1 do y[#y+1]=h[p]end local R=DX(l.args)R[l.idx]=y EX(l.remote,R)task.wait(.15)if not Xr then return end end else EX(l.remote,DX(l.args))end task.wait(1)local E=RX()if not E then return end local g={}for p,y in ipairs(E)do g[y.uniqueId]=true end local L=0 for p in pairs(y)do if not g[p]then L=L+1 end end local v=D-#E Nr.inv=#E if L>0 then er.sellOn=false fr((("BAHAYA: %d ikan favorit ikut terjual. Auto Jual dimatikan.")):format(L),12,"err")elseif v<=0 then ur=ur+1 fr((("Jual tidak berpengaruh (inventory %d -> %d, remote %s [%s], %d argumen)")):format(D,#E,l.remote.Name,l.kind,l.args.n),9,"warn")if ur>=3 then er.sellOn=false fr("Jual gagal 3x, Auto Jual dimatikan.",10,"err")end else ur=0 Nr.sold=Nr.sold+v fr((("Terjual %d ikan")):format(v),5,"ok")end end)if not h then warn(R("20572bd117d77918bc2844f117716ec711ed4328db"),D)end Tr=os.clock()+20 rr=false return true end local NX={targetUserId=nil;targetName=nil,rarity=nil,fishName=nil,amount=1,autoApproach=false;autoAccept=false;running=false;log="Belum pernah jalan.",lastScan={}}local function tX()local p,y=pcall(function()return require(Yr:WaitForChild(R("3d743dca0af14b198e6651fd1c"),5))end)if p and type(y)=="table"then local p=y[R("2f6f2fcc10f94928b26d43e0127329d1")]if type(p)=="table"and type(p.MaxDistance)=="number"then return p.MaxDistance end end return 20 end local function XX(p,y)if not p then return nil end for p,R in ipairs(p:GetChildren())do if R:IsA("Tool")then local p,l=pcall(function()return R:GetAttribute("FishId")end)if p and l==y then return R end end end return nil end local function SX()local p=RX()if not p then return{},"Gagal membaca inventory"end local y={}for p,R in ipairs(p)do local l=c(R.rarity)if((not NX.rarity or l==NX.rarity))and(((not NX.fishName or R.name==NX.fishName))and R.uniqueId)then table.insert(y,R)end end return y,nil end local function PX(p)local y=RX()if not y then return{}end local R,l={},{}for y,h in ipairs(y)do if c(h.rarity)==p and h.name then if not R[h.name]then R[h.name]=0 table.insert(l,h.name)end R[h.name]=R[h.name]+1 end end return l,R end local function kX()local p=RX()local y={}if not p then return y end for p,R in ipairs(p)do local l=c(R.rarity)y[l]=((y[l]or 0))+1 end return y end local function bX(p,y)if not NX.autoApproach then return true end local l=Y.Character and Y.Character:FindFirstChild(R("336823c30df0453eb36758e02b7c3cd6"))local h=p.Character local D=h and h:FindFirstChild(R("336823c30df0453eb36758e02b7c3cd6"))if not((l and D))then return true end local E=((l.Position-D.Position)).Magnitude if E<=math.max(2,y-4)then return true end local g=(l.Position-D.Position)g=g.Magnitude>0 and g.Unit or Vector3.new(1,0,0)local L=D.Position+g*math.max(3,y-6)pcall(function()l.CFrame=CFrame.new(L,D.Position)end)task.wait(.25)return true end local function dX(p,y,R)local l=p.uniqueId if p.isFavorited==true then local p=pcall(function()return ir.ToggleFav:InvokeServer(l)end)if not p then return false,"Gagal unfavorite"end task.wait(.1)end local h=Y.Character local D=h and h:FindFirstChildOfClass("Humanoid")if not((D and D.Health>0))then return false,"Karakter tidak siap"end local E=XX(h,l)or XX(Y:FindFirstChildOfClass("Backpack"),l)if not E then return false,"Tool ikan tidak ada di Backpack/Character untuk id ini (lihat catatan di status)"end if E.Parent~=h then pcall(D.EquipTool,D,E)task.wait(.15)end bX(y,R)if not((ir.tReq and ir.tRes))then return false,"Remote transfer tidak ditemukan"end local g=pcall(function()ir.tReq:FireServer(y,l)end)if not g then return false,"Gagal memanggil remote transfer"end local L=os.clock()+11 while os.clock()<L do task.wait(.3)if not Xr then return false,"Dihentikan"end local p=h:FindFirstChild(E.Name)==E or(E.Parent==h)if E.Parent==nil or(not p and E.Parent~=Y:FindFirstChildOfClass("Backpack"))then return true,"Diterima"end end return false,"Tidak direspon (10 detik) - kemungkinan ditolak/diabaikan"end function NX.start()if NX.running then return false,"Sudah berjalan"end if not NX.targetUserId then return false,"Belum pilih target"end local p=j:GetPlayerByUserId(NX.targetUserId)if not p then return false,"Target sudah tidak ada di server"end local y,R=SX()if R then return false,R end if#y==0 then return false,"Tidak ada ikan yang cocok filter"end NX.running=true task.spawn(function()local R=tX()local l=math.min(NX.amount,#y)local h,D=0,0 for E=1,l,1 do if not NX.running then break end local g=y[E]NX.log=(("Mengirim %d/%d: %s...")):format(E,l,tostring(g.name))local L,v=dX(g,p,R)if L then h=h+1 else D=D+1 end NX.log=(("[%d/%d] %s -> %s")):format(E,l,tostring(g.name),L and"OK"or("GAGAL: "..tostring(v)))task.wait(.4)end NX.log=(("Selesai. Berhasil %d, gagal %d.")):format(h,D)NX.running=false end)return true end function NX.stop()NX.running=false end if ir.tPrompt then table.insert(tr,ir.tPrompt.OnClientEvent:Connect(function(p,y,l,h)if NX.autoAccept and ir.tRes then pcall(function()ir.tRes:FireServer(h,true)end)pcall(function()local p=Y:FindFirstChild(R("2b712fdb06ed6b2f88"))and Y[R("2b712fdb06ed6b2f88")]:FindFirstChild(R("2f6f2fcc10f94928a67d5e"))if p then p.Enabled=false end end)end end))end local function IX(p)if nr then fr("Sedang memproses inventory, coba lagi sebentar",3,"info")return end nr=true task.spawn(function()local y,l=pcall(p)if not y then warn(R("20572bd117d77918bc"),l)end nr=false end)end local CX={active=false;ids={},seen={},token=0}local jX={[R("3d743dca24f65a3f93")]=true,[R("387c3dd631fa5c36886b56e0127220")]=true,[R("38712bc30dea5c19807b43")]=true;[R("35723acb05e66e33956d")]=true;[R("367420cb04fe413fb36d44e117690bd406f158")]=true;[R("2e6d2ac317fa7f2e936d56ff3e6b2bcc17")]=true;[R("2b682cce0aec441c887b5fd71a692dca")]=true,[R("287521d52df05833876154f50f7421cc")]=true,[R("28782dd006eb6833926b58e21e6f37")]=true;[R("3d743dca20fe593d897c79fb0f7428db")]=true}local function nX(p)p=string.lower(p)return string.find(p,"sell",1,true)~=nil or string.find(p,"jual",1,true)~=nil end local function rX(p)local y=p.Name if nX(y)then return false end return jX[y]or string.sub(y,1,10)==R("327338c70deb43289857")end local function qX(p,y)CX.active=false local h={remote=p;args=y,kind=R("0d783cc002eb4537")}for p=1,y.n,1 do local l=y[p]if type(l)=="string"and CX.ids[l]then h.kind=R("087420c50ffa")h.idx=p break elseif type(l)=="table"then local y,D=0,true for p,R in pairs(l)do y=y+1 if not((type(R)=="string"and CX.ids[R]))then D=false break end end if y>0 and D then h.kind=R("166822d60a")h.idx=p break end end end C[l.g1h]=h zr.badMethod={}ur=0 AX(h)fr((("Remote jual dipelajari: %s [%s]")):format(p.Name,h.kind),10,"ok")end local function TX(p,y,R)if not CX.active then return end if typeof(p)~="Instance"then return end if not((p:IsA("RemoteEvent")or p:IsA("RemoteFunction")))then return end if rX(p)then return end CX.seen[p]=R if nX(p.Name)then qX(p,R)end end local function uX()C[l.g2o]=C[l.g2o]or{}local p=C[l.g2o]p.handler=TX if C[l.g3v]then return true end if not((hookmetamethod and getnamecallmethod))then return false end local y local R=function(R,...)local l=getnamecallmethod()local h=string.lower(tostring(l))if h=="fireserver"or h=="invokeserver"then local y=p.handler if y and not((checkcaller and checkcaller()))then task.defer(y,R,l,table.pack(...))end end return y(R,...)end if newcclosure then R=newcclosure(R)end y=hookmetamethod(game,"__namecall",R)C[l.g3v]=true return true end function zr.startLearn()if Zr()then return end if not uX()then fr("Executor tidak punya hookmetamethod, tidak bisa belajar remote jual",8,"err")return end local p=RX()CX.ids={}if p then for p,y in ipairs(p)do if y.uniqueId then CX.ids[y.uniqueId]=true end end end CX.seen={}CX.active=true CX.token=CX.token+1 local y=CX.token fr("MODE BELAJAR: jual 1 ikan lewat NPC sekarang (60 dtk)",60,"info")task.delay(60,function()if CX.active and CX.token==y then CX.active=false local p,y,R=0,nil,nil local l={}for h,D in pairs(CX.seen)do p=p+1 y,R=h,D table.insert(l,h:GetFullName())end if p==1 then qX(y,R)else w("learn timeout, remotes seen:",table.concat(l,", "))fr(p==0 and"Tidak ada remote terdeteksi"or"Remote ambigu, lihat console",8,"warn")end end end)end function zr.forget()if Zr()then return end C[l.g1h]=nil zr.badMethod={}if delfile and isfile then pcall(function()if isfile(X.SellFile)then delfile(X.SellFile)end end)end fr("Remote jual hasil belajar dilupakan",4,"info")end task.spawn(function()for p,y in ipairs({T;workspace})do for p,y in ipairs(y:GetDescendants())do if y:IsA("RemoteEvent")or y:IsA("RemoteFunction")then local p=string.lower(y.Name)if string.find(p,"sell",1,true)or string.find(p,"jual",1,true)or string.find(p,"shop",1,true)or string.find(p,"merchant",1,true)then table.insert(Qr,y:GetFullName())end end end end if#Qr>0 then w("sell remote candidates:",table.concat(Qr,", "))end end)eX()local function MX(p)if not p then return nil end for p,y in ipairs(p:GetChildren())do if y:IsA("Tool")and q:HasTag(y,R("29722a"))then return y end end return nil end local function QX()local p=Y.Character local y=p and p:FindFirstChildOfClass("Humanoid")if not((y and y.Health>0))then return nil end local R=MX(p)if R then return R end if er.autoEquip then local p=MX(Y:FindFirstChildOfClass("Backpack"))if p then pcall(y.EquipTool,y,p)end end return nil end local function zX()if os.clock()-Cr<1.5 then return end Cr=os.clock()pcall(function()local p=game:GetService("VirtualInputManager")local y=workspace.CurrentCamera local R=y and y.ViewportSize or Vector2.new(800,600)p:SendMouseButtonEvent(R.X*.5,R.Y*.5,0,true,game,0)task.wait(.05)p:SendMouseButtonEvent(R.X*.5,R.Y*.5,0,false,game,0)end)end local function fX()if not er.farm or rr then return false end if Nr.inv and Nr.inv>=X.MaxInventory then if not((er.sellOn and UX()))then Nr.status=((lr and"Inventory penuh (%d). Jual dulu / aktifkan Auto Jual."or"Inventory penuh (%d). Jual manual di NPC (Auto Jual khusus PREMIUM).")):format(Nr.inv)return false end end return true end local function ZX()if not fX()then return end if not kr.fishState then pcall(Jr)end pcall(Wr)local p=QX()if not p then Nr.status="Rod belum di-equip"return end if Sr and Sr:IsActive()then Ir=nil return end local y,R=kr.fishState,kr.rodState if y and R then if not R.isEquipped then Nr.status="Menunggu rod siap"return end if y.casted or y.fishingInProgress then Ir=Ir or os.clock()Nr.status="Menunggu ikan menggigit"if os.clock()-Ir>er.stuckTimeout then pcall(R.CleanupFishing,R)Ir=nil end return end Ir=nil if er.autoCast and(y.canCast and(not y.castingCooldown and(R:IsValidRod()and kr.actionStart)))then Nr.status="Melempar pancing"task.spawn(kr.actionStart)end elseif er.autoCast then if X.AllowClickFallback then Nr.status="State game tidak ditemukan, pakai klik"zX()else Nr.status="State game tidak ditemukan (butuh getconnections + getupvalues)"end end end function zr.syncPreset()for p,y in ipairs(Lr)do local R=vr[y]if er.skipDelay==R.skipDelay and(er.biteFast==R.biteFast and(er.biteWait==R.biteWait and er.castCooldown==R.castCooldown))then er.preset=y return end end er.preset="Kustom"end function zr.setPreset(p)local y=vr[p]if not y then return end if not lr and p~="Aman"then Zr()return end er.skipDelay,er.biteFast,er.biteWait,er.castCooldown=y.skipDelay,y.biteFast,y.biteWait,y.castCooldown er.preset=p zr.skipFails=0 end function zr.setFarm(p)Gr()er.farm=p and true or false if er.farm then jr=true zr.skipFails=0 zr.pendingVerify=nil Nr.status="Farm aktif"fr("Farm mancing aktif",3,"ok")else if Sr then pcall(Sr.SetHolding,Sr,false)end ar()Ir=nil zr.pendingVerify=nil pcall(sr)Nr.status="Farm dimatikan"fr("Farm mancing dimatikan",3,"info")end end local function YX()ur=0 Tr=0 jr=true er.sellOn=true local p=Nr.inv fr((("Auto jual aktif: jual saat inventory >= %d (sekarang %s)")):format(er.sellAt,p and tostring(p)or"?"),6,"ok")end function zr.setSell(p)if not p then er.sellOn=false return end if Zr()then return end local y,R=KX(false)if R=="none"then fr(y,9,"warn")return end if R=="allow"and zr.ask then zr.ask("Izinkan jual-semua?","Remote jual hasil Pelajari menjual SEMUA ikan sekaligus. Sebelum menjual, ikan rarity pilihanmu difavoritkan (jika Auto Favorit aktif) dan dicek ulang; jika favorit hilang, Auto Jual mati otomatis. Izinkan dan nyalakan Auto Jual?","Izinkan",function()er.allowSellAll=true YX()zr.refreshUI()end)return end YX()end function zr.favNow()if Zr()then return end IX(function()local p=hX(lX())fr((("%d ikan difavoritkan")):format(p),4,p>0 and"ok"or"info")end)end function zr.sellNow()if Zr()then return end local p,y=KX(false)if not p then IX(function()GX(false)end)elseif y=="allow"and zr.ask then zr.ask("Jual semua ikan?","Remote jual ini menjual SEMUA ikan non-favorit sekaligus. Lanjutkan sekali ini?","Ya, jual",function()IX(function()GX(true)end)end)else fr(p,8,"warn")end end function zr.methodReport()local p=UX()return{learned=p and(p.remote.Name..(" ["..(p.kind.."]")))or nil;learnedKind=p and p.kind or nil;sellFishPresent=ir.rB~=nil}end function zr.capsLine()return(("minigame: %s\nstate game (Skip/Tuning): %s\nlempar otomatis: %s\nhook belajar jual: %s\nfile (logo/jual): %s\ntuning waktu: %s")):format(Sr and"OK"or"X",Pr and"OK"or"X (pakai GUI)",kr.fishState and"OK"or"belum ditemukan",((hookmetamethod and getnamecallmethod))and"OK"or"X",((writefile and(readfile and isfile)))and"OK"or"X",((kr.fishState and kr.origWait~=nil))and"OK"or"belum terbaca")end local FX=false local BX=nil local function wX(p)local y=pcall(function()if z.ChatVersion~=Enum.ChatVersion.TextChatService then error("legacy chat")end local y=z:FindFirstChild("TextChannels")or z:WaitForChild("TextChannels",3)if not y then error("no TextChannels")end local l=y:FindFirstChild(R("295f16e506f149288064"))or y:WaitForChild(R("295f16e506f149288064"),3)if not l then for p,y in ipairs(y:GetChildren())do if y:IsA("TextChannel")and(y.Name~="RBXSystem"and y.Name~="RBXTeam")then l=y break end end end if not l then error("no channel")end l:SendAsync(p)end)if y then return"TextChatService"end local l=pcall(function()local y=T:FindFirstChild(R("3f7828c316f35819896943c7026e3ac70edc443b954d41f115693d"))local l=y and y:FindFirstChild(R("287c37ef06ec5f3b866d65f10a682bd117"))if not l then error("x")end l:FireServer(p,R("3a7122"))end)if l then return"legacy"end return nil end local function iX()BX=wX(R("5a6f2bc80cf642"))if BX then fr("Anti-Lose Streak: !rejoin terkirim 1x ("..(BX.."), auto farm dihentikan."),8,"warn")else fr("Anti-Lose Streak: !rejoin GAGAL terkirim (chat tidak ditemukan). Auto farm dihentikan.",10,"warn")end task.delay(3,function()pcall(function()if Y and Y.Parent then f:TeleportToPlaceInstance(game.PlaceId,game.JobId,Y)end end)end)end local function cX()if FX then return end FX=true er.farm=false iX()end local oX={on=false;saved=nil,conns={},effectCount=0;meshCount=0}local HX={"ParticleEmitter","Trail";"Beam","Smoke";"Fire","Sparkles","Highlight"}local OX={"BloomEffect","SunRaysEffect";"ColorCorrectionEffect";"DepthOfFieldEffect","BlurEffect"}local xX={Atmosphere={Density=0,Haze=0;Glare=0},Clouds={Enabled=false;Cover=0;Density=0}}local function JX(p)for y,R in ipairs(HX)do if p:IsA(R)then return true end end return false end local function VX(p)local y=0 for R,l in ipairs(workspace:GetDescendants())do if JX(l)then local R,h=pcall(function()return l.Enabled end)if R and h~=p then pcall(function()l.Enabled=p end)y=y+1 end end end return y end local function WX(p,y)local R=0 for l,h in ipairs(workspace:GetDescendants())do if h:IsA("MeshPart")then if p then local p,l=pcall(function()return h.RenderFidelity end)if p and l~=Enum.RenderFidelity.Performance then y[h]=l pcall(function()h.RenderFidelity=Enum.RenderFidelity.Performance end)R=R+1 end else local p=y[h]if p~=nil then pcall(function()h.RenderFidelity=p end)end end end end return R end function oX.enable()if not lr then return false,"Khusus PREMIUM/OWNER"end if oX.on then return true end local p,y=pcall(function()local p=UserSettings and(UserSettings()):GetService("UserGameSettings")return{quality=p and p.SavedQualityLevel,shadows=u.GlobalShadows;tech=u.Technology,diffuse=u.EnvironmentDiffuseScale;specular=u.EnvironmentSpecularScale,shadowSoft=u.ShadowSoftness,waterWave=workspace.Terrain and workspace.Terrain.WaterWaveSize;waterSpeed=workspace.Terrain and workspace.Terrain.WaterWaveSpeed,waterReflect=workspace.Terrain and workspace.Terrain.WaterReflectance,postFx={};fxInst={},meshFidelity={}}end)if not p then return false,"Gagal membaca pengaturan grafis"end oX.saved=y oX.on=true pcall(function()local p=(UserSettings()):GetService("UserGameSettings")p.SavedQualityLevel=Enum.SavedQualitySetting.QualityLevel1 end)pcall(function()u.GlobalShadows=false end)pcall(function()u.Technology=Enum.Technology.Compatibility end)pcall(function()u.EnvironmentDiffuseScale=0 end)pcall(function()u.EnvironmentSpecularScale=0 end)pcall(function()u.ShadowSoftness=0 end)for p,R in ipairs(OX)do for p,l in ipairs(u:GetChildren())do if l.ClassName==R then local p,R=pcall(function()return l.Enabled end)if p then y.postFx[l]=R pcall(function()l.Enabled=false end)end end end end for p,R in ipairs(u:GetChildren())do local l=xX[R.ClassName]if l then local p={}for y in pairs(l)do local l,h=pcall(function()return R[y]end)if l then p[y]=h end end y.fxInst[R]=p for p,y in pairs(l)do pcall(function()R[p]=y end)end end end pcall(function()local p=workspace.Terrain if p then p:SetAttribute("_boostHadDeco",true)p:SetDecorationsVisible(false)p.WaterWaveSize=0 p.WaterWaveSpeed=0 p.WaterReflectance=0 end end)oX.effectCount=VX(false)oX.meshCount=WX(true,y.meshFidelity)table.insert(oX.conns,workspace.DescendantAdded:Connect(function(p)if JX(p)then task.defer(function()if oX.on then pcall(function()p.Enabled=false end)end end)elseif p:IsA("MeshPart")then task.defer(function()if oX.on and oX.saved then local y,R=pcall(function()return p.RenderFidelity end)if y and R~=Enum.RenderFidelity.Performance then oX.saved.meshFidelity[p]=R pcall(function()p.RenderFidelity=Enum.RenderFidelity.Performance end)end end end)end end))return true end function oX.disable()if not oX.on then return end oX.on=false for p,y in ipairs(oX.conns)do pcall(function()y:Disconnect()end)end oX.conns={}local p=oX.saved if p then pcall(function()local y=(UserSettings()):GetService("UserGameSettings")if p.quality~=nil then y.SavedQualityLevel=p.quality end end)pcall(function()u.GlobalShadows=p.shadows end)pcall(function()u.Technology=p.tech end)pcall(function()u.EnvironmentDiffuseScale=p.diffuse end)pcall(function()u.EnvironmentSpecularScale=p.specular end)pcall(function()u.ShadowSoftness=p.shadowSoft end)for p,y in pairs(p.postFx or{})do pcall(function()p.Enabled=y end)end for p,y in pairs(p.fxInst or{})do for y,R in pairs(y)do pcall(function()p[y]=R end)end end WX(false,p.meshFidelity or{})pcall(function()local y=workspace.Terrain if y then y:SetDecorationsVisible(true)if p.waterWave~=nil then y.WaterWaveSize=p.waterWave end if p.waterSpeed~=nil then y.WaterWaveSpeed=p.waterSpeed end if p.waterReflect~=nil then y.WaterReflectance=p.waterReflect end end end)end VX(true)end local sX,aX=pcall(function()return require((Yr:WaitForChild(R("3d743dca0af14b178e6c42f81e6e"),10)):WaitForChild(R("3c4807ef02f14d3d847a"),10))end)if sX and(type(aX)=="table"and type(aX[R("287521d52df05833876154f50f7421cc")])=="function")then local p=aX[R("287521d52df05833876154f50f7421cc")]aX[R("287521d52df05833876154f50f7421cc")]=function(y,l,...)local h,D=pcall(p,y,l,...)if not h then warn(R("20572bd117d77918bc"),D)end if lr and(Ur.antiLoseStreak and type(l)=="string")then local p=string.lower(l)if string.find(p,R("1c723a8202e84d23"),1,true)or string.find(p,R("1e6e2dc313fa48"),1,true)then task.spawn(cX)end end end else warn(R("20572bd117d77918bc2870c132502fcc02f84928c16658e05b7b21d70dfb0c77c14959e0123002cd10fa0c09957a52f5103d2acb10fe4e36846c17e013743d8210fa5f29886759"))end if ir.rA then table.insert(tr,ir.rA.OnClientEvent:Connect(function(p)Nr.caught=Nr.caught+1 if Nr.inv then Nr.inv=Nr.inv+1 end zr.pendingVerify=nil zr.skipFails=0 if type(p)=="table"then local y=c(p.rarity)Nr.byRarity[y]=((Nr.byRarity[y]or 0))+1 end jr=true end))end task.spawn(function()while Xr do if er.farm then pcall(ZX)end task.wait(.15)end end)task.spawn(function()while Xr do local p=er.farm or er.favOn or er.sellOn local y=os.clock()-qr local l=(er.favOn and(jr and y>=1.2))or y>=X.InventoryPollSeconds or(er.sellOn and(Nr.inv and(Nr.inv>=er.sellAt and y>=2)))if p and(l and not nr)then jr=false nr=true local p,y=pcall(function()local p=lX()if not p then return end if er.favOn then hX(p)end if er.sellOn and(Nr.inv>=er.sellAt and os.clock()>=Tr)then GX(false)end end)if not p then warn(R("20572bd117d77918bc"),y)end nr=false end task.wait(.7)end end)Sr=xr()Or()w((("capabilities: minigame=%s getupvalues=%s getconnections=%s mgState=%s hook=%s")):format(tostring(Sr~=nil),tostring(F~=nil),tostring(B~=nil),tostring(Pr~=nil),tostring(hookmetamethod~=nil and getnamecallmethod~=nil)))if not Sr then warn(R("20572bd117d77918bc285afd157429c30efa0c378e6c42f81e3d3bcc02e94d338d6955f81e316ec301f05e2e886650"))Xr=false return end pcall(Jr)table.insert(tr,n.Heartbeat:Connect(yX))table.insert(tr,Y.CharacterAdded:Connect(function()kr.fishState,kr.rodState,kr.actionStart=nil,nil,nil Ir=nil ar()end))local mX="\137PNG\r\n\026\n"local function pc(p)task.spawn(function()local y,R=pcall(function()local p=getcustomasset or getsynasset if not((p and writefile))then return nil end local y if isfile and(readfile and isfile(X.LogoFile))then y=readfile(X.LogoFile)end if not((type(y)=="string"and(#y>1000 and string.sub(y,1,8)==mX)))then y=nil local p,R=pcall(function()return game:HttpGet(X.LogoUrl)end)if p and type(R)=="string"then y=R end if not y then local p=request or http_request or(syn and syn.request)if p then local R,l=pcall(p,{Url=X.LogoUrl,Method="GET"})if R and(type(l)=="table"and type(l.Body)=="string")then y=l.Body end end end if not((type(y)=="string"and(#y>1000 and string.sub(y,1,8)==mX)))then return nil end writefile(X.LogoFile,y)end return p(X.LogoFile)end)if y and R then p(R)else w("logo not loaded (bubble keeps the CM text)")end end)end local function yc()local p={}local y={}local l={yellow=Color3.fromRGB(255,196,0),yellowDark=Color3.fromRGB(222,156,0);yellowLight=Color3.fromRGB(255,222,92);yellowSoft=Color3.fromRGB(255,245,205),white=Color3.fromRGB(255,255,255);offwhite=Color3.fromRGB(251,248,238);text=Color3.fromRGB(38,32,10);muted=Color3.fromRGB(125,112,70),gray=Color3.fromRGB(218,212,194);line=Color3.fromRGB(233,226,205),red=Color3.fromRGB(214,64,54),green=Color3.fromRGB(56,170,88)}local h={"Farm","Favorit","Jual";"Trade";"Extras";"Profile"}local D={Enum.EasingStyle.Back;Enum.EasingDirection.Out}local function E(p,y,R)local l=Instance.new(p)for p,y in pairs(y)do l[p]=y end if R then l.Parent=R end return l end local function g(p,y)return E("UICorner",{CornerRadius=UDim.new(0,y)},p)end local function L(p,y,R)return E("UIStroke",{Color=y;Thickness=R;ApplyStrokeMode=Enum.ApplyStrokeMode.Border},p)end local function v(p,y,R,l,h)local D=M:Create(p,TweenInfo.new(y,l or Enum.EasingStyle.Quad,h or Enum.EasingDirection.Out),R)D:Play()return D end local A=setmetatable({},{__mode="k"})local function e(p)A[p]=((A[p]or 0))+1 return A[p]end local function S()local p=workspace.CurrentCamera return p and p.ViewportSize or Vector2.new(800,600)end local P=E("ScreenGui",{Name=U..tostring(math.random(1000,9999)),ResetOnSpawn=false;DisplayOrder=999;IgnoreGuiInset=true,ZIndexBehavior=Enum.ZIndexBehavior.Sibling})pcall(function()P.Parent=(gethui and gethui())or game:GetService("CoreGui")end)if not P.Parent then P.Parent=Y:WaitForChild("PlayerGui")end p.sg=P local k={minimized=false,ready=false,busy=false;bubbleMoved=false}local b=S()local d=Vector2.new(math.min(390,b.X-24),math.min(500,b.Y-24))local I=Vector2.new(math.max(12,((b.X-d.X))/2),math.max(12,((b.Y-d.Y))/2))local C=Vector2.new(I.X+30,I.Y+30)local n=E("CanvasGroup",{Name="Main",AnchorPoint=Vector2.new(.5,.5);BackgroundColor3=l.white,BorderSizePixel=0,GroupTransparency=1;Visible=false},P)g(n,14)L(n,l.yellow,2)local q=E("UIScale",{Scale=.85},n)local function T()n.Size=UDim2.fromOffset(d.X,d.Y)n.Position=UDim2.fromOffset(I.X+d.X/2,I.Y+d.Y/2)end T()local u=E("Frame",{Name="Header",Size=UDim2.new(1,0,0,54),BackgroundColor3=l.yellow,BorderSizePixel=0,ClipsDescendants=true},n)E("UIGradient",{Color=ColorSequence.new(l.yellowLight,l.yellow),Rotation=90},u)local Q=E("Frame",{Size=UDim2.new(0,36,1.8,0),Position=UDim2.new(-0.3,0,-0.4,0);Rotation=20,BackgroundColor3=l.white,BackgroundTransparency=.8;BorderSizePixel=0},u)local z=E("Frame",{Size=UDim2.fromOffset(38,38),Position=UDim2.fromOffset(12,8);BackgroundColor3=l.white,BorderSizePixel=0},u)g(z,19)L(z,l.yellowDark,1.5)local f=E("TextLabel",{Size=UDim2.fromScale(1,1),BackgroundTransparency=1,Text=K,Font=Enum.Font.GothamBlack,TextSize=14;TextColor3=l.text},z)local F=E("ImageLabel",{Size=UDim2.fromScale(1,1),BackgroundTransparency=1,ImageTransparency=1;ScaleType=Enum.ScaleType.Crop},z)g(F,19)local B=E("TextLabel",{Size=UDim2.new(1,-150,0,20),Position=UDim2.fromOffset(58,8);BackgroundTransparency=1;RichText=true,Text=G;TextColor3=l.text,Font=Enum.Font.GothamBold,TextScaled=true,TextXAlignment=Enum.TextXAlignment.Left},u)E("UITextSizeConstraint",{MaxTextSize=14,MinTextSize=8},B)E("TextLabel",{Size=UDim2.new(1,-150,0,14);Position=UDim2.fromOffset(58,30),BackgroundTransparency=1,Text="Mancing  -  Favorit  -  Jual   v"..X.Version,TextColor3=Color3.fromRGB(120,92,0);Font=Enum.Font.Gotham,TextSize=10,TextXAlignment=Enum.TextXAlignment.Left},u)local function w(p,y)local R=E("TextButton",{Size=UDim2.fromOffset(28,28);AnchorPoint=Vector2.new(1,.5),Position=UDim2.new(1,y,.5,0);BackgroundColor3=l.white,Text=p;TextColor3=l.text,Font=Enum.Font.GothamBold,TextSize=14;AutoButtonColor=false},u)g(R,14)R.MouseEnter:Connect(function()v(R,.12,{BackgroundColor3=l.yellowSoft})end)R.MouseLeave:Connect(function()v(R,.12,{BackgroundColor3=l.white})end)return R end local c=w("-",-46)local H=w("X",-12)local O=E("Frame",{Position=UDim2.new(0,12,0,62),Size=UDim2.new(1,-24,0,34);BackgroundColor3=l.offwhite,BorderSizePixel=0},n)g(O,10)L(O,l.line,1)local x=E("Frame",{Size=UDim2.new(1/#h,-6,1,-6),Position=UDim2.new(0,3,0,3);BackgroundColor3=l.yellow,BorderSizePixel=0},O)g(x,8)local V={}local W=E("Frame",{Position=UDim2.new(0,0,0,102);Size=UDim2.new(1,0,1,-152);BackgroundTransparency=1;ClipsDescendants=true},n)local s={}local function a()local p=E("CanvasGroup",{Size=UDim2.fromScale(1,1),BackgroundTransparency=1;Visible=false},W)local y=E("ScrollingFrame",{Size=UDim2.fromScale(1,1),BackgroundTransparency=1,BorderSizePixel=0;ScrollBarThickness=4;ScrollBarImageColor3=l.yellowDark;CanvasSize=UDim2.new();AutomaticCanvasSize=Enum.AutomaticSize.Y,ScrollingDirection=Enum.ScrollingDirection.Y},p)E("UIListLayout",{Padding=UDim.new(0,8),SortOrder=Enum.SortOrder.LayoutOrder},y)E("UIPadding",{PaddingLeft=UDim.new(0,12);PaddingRight=UDim.new(0,12),PaddingTop=UDim.new(0,4);PaddingBottom=UDim.new(0,12)},y)local R={cg=p;sf=y}table.insert(s,R)return R end local m=E("Frame",{Size=UDim2.new(1,0,0,50),Position=UDim2.new(0,0,1,-50);BackgroundColor3=l.yellowSoft,BorderSizePixel=0},n)local pr=E("Frame",{Size=UDim2.fromOffset(10,10);Position=UDim2.fromOffset(12,9);BackgroundColor3=l.gray,BorderSizePixel=0},m)g(pr,5)local Rr=E("TextLabel",{Size=UDim2.new(1,-66,0,16);Position=UDim2.fromOffset(28,6),BackgroundTransparency=1;Text="";TextColor3=l.text,Font=Enum.Font.GothamBold;TextSize=11,TextTruncate=Enum.TextTruncate.AtEnd;TextXAlignment=Enum.TextXAlignment.Left},m)local Er=E("TextLabel",{Size=UDim2.new(1,-66,0,14),Position=UDim2.fromOffset(28,27);BackgroundTransparency=1;Text="";TextColor3=l.muted;Font=Enum.Font.Gotham,TextSize=10,TextTruncate=Enum.TextTruncate.AtEnd;TextXAlignment=Enum.TextXAlignment.Left},m)local function vr(p,y,R,h)local D=E("Frame",{Name="Padlock";Size=UDim2.fromOffset(14,17),AnchorPoint=R;Position=h,BackgroundTransparency=1,BorderSizePixel=0},p)local v=E("Frame",{Size=UDim2.fromOffset(10,11),Position=UDim2.fromOffset(2,0),BackgroundTransparency=1,BorderSizePixel=0},D)g(v,5)L(v,y,2)local A=E("Frame",{Size=UDim2.fromOffset(14,10),Position=UDim2.fromOffset(0,7);BackgroundColor3=y,BorderSizePixel=0},D)g(A,3)local e=E("Frame",{Size=UDim2.fromOffset(3,4);Position=UDim2.fromOffset(5.5,10),BackgroundColor3=l.white;BorderSizePixel=0},D)g(e,1)return D end local function Kr(p,y,R)if not hr(y)then return nil end R=R or{}local h=E("TextButton",{Name="LockShield";Size=UDim2.fromScale(1,1),BackgroundColor3=l.offwhite,BackgroundTransparency=.3;BorderSizePixel=0,Text="";AutoButtonColor=false;ZIndex=30},p)if R.region then h.Position,h.Size=R.region[1],R.region[2]end if R.radius then g(h,R.radius)end vr(h,l.muted,Vector2.new(1,.5),UDim2.new(1,-((R.inset or 14)),.5,0))h.Activated:Connect(function()zr.toast(J,"warn",3)end)return h end local function Sr(p)local y=E("Frame",{Size=UDim2.new(1,0,0,0);AutomaticSize=Enum.AutomaticSize.Y;BackgroundColor3=l.offwhite,BorderSizePixel=0,LayoutOrder=e(p.sf)},p.sf)g(y,12)L(y,l.line,1)E("UIPadding",{PaddingTop=UDim.new(0,10);PaddingBottom=UDim.new(0,10);PaddingLeft=UDim.new(0,12),PaddingRight=UDim.new(0,12)},y)E("UIListLayout",{Padding=UDim.new(0,8);SortOrder=Enum.SortOrder.LayoutOrder},y)return y end local function kr(p,y,R,l,h)return E("TextLabel",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1,Text=y,TextSize=R;TextColor3=l,Font=h;TextWrapped=true;TextXAlignment=Enum.TextXAlignment.Left,TextYAlignment=Enum.TextYAlignment.Top;LayoutOrder=e(p)},p)end local function br(p,y,R)local h=kr(p,y,12,l.yellowDark,Enum.Font.GothamBold)if hr(R)then vr(h,l.yellowDark,Vector2.new(1,.5),UDim2.new(1,0,.5,0))end return h end local function dr(p,y)return kr(p,y,11,l.muted,Enum.Font.Gotham)end local function Ir(p)local y=E("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y;BackgroundTransparency=1,LayoutOrder=e(p)},p)E("UISizeConstraint",{MinSize=Vector2.new(0,36)},y)return y end local function Cr(p,y,R,h)local D=E("Frame",{Size=UDim2.new(1,-h,0,0),AutomaticSize=Enum.AutomaticSize.Y;BackgroundTransparency=1},p)E("UIListLayout",{Padding=UDim.new(0,2),SortOrder=Enum.SortOrder.LayoutOrder},D)kr(D,y,13,l.text,Enum.Font.GothamBold)if R and R~=""then kr(D,R,11,l.muted,Enum.Font.Gotham)end return D end local function nr(R,h,L,A,e,U,K)local G=Ir(R)Cr(G,h,L,62)Kr(G,K,{inset=17})local N=E("TextButton",{AnchorPoint=Vector2.new(1,.5),Position=UDim2.new(1,0,.5,0);Size=UDim2.fromOffset(48,26),Text="",AutoButtonColor=false,BackgroundColor3=l.gray},G)g(N,13)local t=E("Frame",{Size=UDim2.fromOffset(20,20),Position=UDim2.fromOffset(3,3),BackgroundColor3=l.white,BorderSizePixel=0},N)g(t,10)local X table.insert(y,function()if U then local p=U()if G.Visible~=p then G.Visible=p end end local p=A()and true or false if p~=X then local y=X==nil X=p local R=p and l.yellowDark or l.gray local h=p and UDim2.fromOffset(25,3)or UDim2.fromOffset(3,3)if y then N.BackgroundColor3,t.Position=R,h else v(N,.18,{BackgroundColor3=R})v(t,.22,{Position=h},D[1],D[2])end end end)N.Activated:Connect(function()e(not A())p.refresh()end)return G end local function rr(R,h,D,A,e,U,K,G,N,t)local X=Ir(R)Cr(X,h,D,74)Kr(X,t,{inset=24})local S=E("TextBox",{AnchorPoint=Vector2.new(1,.5),Position=UDim2.new(1,0,.5,0),Size=UDim2.fromOffset(62,30),BackgroundColor3=l.white;Text=o(A(),G),TextColor3=l.text,Font=Enum.Font.GothamBold,TextSize=13;ClearTextOnFocus=false;PlaceholderText=""},X)g(S,8)local P=L(S,l.line,1.5)S.Focused:Connect(function()v(P,.15,{Color=l.yellowDark})end)S.FocusLost:Connect(function()v(P,.15,{Color=l.line})local y=string.gsub(S.Text,",",".")local R=tonumber(y)if R and i(R)then local p=math.clamp(R,U,K)if p~=R then zr.toast((("Nilai dibatasi ke %s - %s")):format(o(U,G),o(K,G)),"warn",3)end e(G and math.floor(p+.5)or p)else zr.toast("Isi dengan angka","warn",3)end S.Text=o(A(),G)p.refresh()end)table.insert(y,function()if N then local p=N()if X.Visible~=p then X.Visible=p end end if S:IsFocused()then return end local p=o(A(),G)if S.Text~=p then S.Text=p end end)return X end local function qr(R,h,A,U)local K=#h local G=E("Frame",{Size=UDim2.new(1,0,0,34),BackgroundColor3=l.white,BorderSizePixel=0;LayoutOrder=e(R)},R)g(G,10)L(G,l.line,1)local N=E("Frame",{Size=UDim2.new(1/K,-6,1,-6),Position=UDim2.new(0,3,0,3),BackgroundColor3=l.yellow,BorderSizePixel=0},G)g(N,8)local t={}for y,R in ipairs(h)do local h=E("TextButton",{Size=UDim2.new(1/K,0,1,0),Position=UDim2.new(((y-1))/K,0,0,0),BackgroundTransparency=1,Text=R.text;Font=Enum.Font.GothamBold,TextSize=12;TextColor3=l.muted,AutoButtonColor=false,ZIndex=2},G)h.Activated:Connect(function()U(R.id)p.refresh()end)t[y]=h Kr(G,R.lock,{radius=8,inset=8,region={UDim2.new(((y-1))/K,0,0,0),UDim2.new(1/K,0,1,0)}})end local X="unset"table.insert(y,function()local p=A()if p~=X then local y=X=="unset"X=p local R for y,l in ipairs(h)do if l.id==p then R=y end end for p,y in ipairs(t)do v(y,.18,{TextColor3=(p==R)and l.text or l.muted})end if R then local p=UDim2.new(((R-1))/K,3,0,3)if y then N.Position,N.BackgroundTransparency=p,0 else N.BackgroundTransparency=0 v(N,.28,{Position=p},D[1],D[2])end else v(N,.18,{BackgroundTransparency=1})end end end)return G end local function Tr(p,y,R,h,A)local U=(R=="danger")and l.red or((R=="ghost")and l.white or l.yellow)local K=(R=="danger")and Color3.fromRGB(235,95,85)or((R=="ghost")and l.yellowSoft or l.yellowLight)local G=(R=="danger")and l.white or l.text local N=E("TextButton",{Size=UDim2.new(1,0,0,38);BackgroundColor3=U,Text=y,TextColor3=G;Font=Enum.Font.GothamBold;TextSize=13;AutoButtonColor=false;LayoutOrder=e(p)},p)g(N,10)if R=="ghost"then L(N,l.yellowDark,1.5)end local t=E("UIScale",{Scale=1},N)N.MouseEnter:Connect(function()v(N,.12,{BackgroundColor3=K})end)N.MouseLeave:Connect(function()v(N,.12,{BackgroundColor3=U})v(t,.1,{Scale=1})end)N.MouseButton1Down:Connect(function()v(t,.08,{Scale=.96})end)N.MouseButton1Up:Connect(function()v(t,.12,{Scale=1},D[1],D[2])end)N.Activated:Connect(h)Kr(N,A,{radius=10,inset=14})return N end local ur,Mr,Qr,fr,Yr,Fr=a(),a(),a(),a(),a(),a()local Br=E("Frame",{Size=UDim2.new(1,0,0,76),BackgroundColor3=l.offwhite,BorderSizePixel=0;LayoutOrder=e(ur.sf)},ur.sf)g(Br,14)local wr=L(Br,l.line,1.5)local ir=E("TextLabel",{Size=UDim2.new(1,-90,0,20),Position=UDim2.fromOffset(14,12),BackgroundTransparency=1,Text="AUTO FARM: MATI";TextColor3=l.text,Font=Enum.Font.GothamBlack;TextSize=16;TextXAlignment=Enum.TextXAlignment.Left},Br)local cr=E("TextLabel",{Size=UDim2.new(1,-90,0,30),Position=UDim2.fromOffset(14,34),BackgroundTransparency=1,Text="Ketuk untuk mulai mancing otomatis";TextColor3=l.muted,Font=Enum.Font.Gotham;TextSize=11,TextWrapped=true,TextXAlignment=Enum.TextXAlignment.Left;TextYAlignment=Enum.TextYAlignment.Top},Br)local Hr=E("Frame",{AnchorPoint=Vector2.new(1,.5);Position=UDim2.new(1,-14,.5,0);Size=UDim2.fromOffset(60,32);BackgroundColor3=l.gray;BorderSizePixel=0},Br)g(Hr,16)local Or=E("Frame",{Size=UDim2.fromOffset(26,26),Position=UDim2.fromOffset(3,3);BackgroundColor3=l.white,BorderSizePixel=0},Hr)g(Or,13)local xr=E("TextButton",{Size=UDim2.fromScale(1,1);BackgroundTransparency=1,Text="";ZIndex=5},Br)xr.Activated:Connect(function()zr.setFarm(not er.farm)p.refresh()end)local Jr table.insert(y,function()local p=er.farm and true or false cr.Text=p and((Nr.status or""))or"Ketuk untuk mulai mancing otomatis"if p~=Jr then local y=Jr==nil Jr=p ir.Text=p and"AUTO FARM: AKTIF"or"AUTO FARM: MATI"local R=p and l.yellowSoft or l.offwhite local h=p and l.yellowDark or l.line local E=p and l.yellowDark or l.gray local g=p and UDim2.fromOffset(31,3)or UDim2.fromOffset(3,3)if y then Br.BackgroundColor3,wr.Color,Hr.BackgroundColor3,Or.Position=R,h,E,g else v(Br,.25,{BackgroundColor3=R})v(wr,.25,{Color=h})v(Hr,.25,{BackgroundColor3=E})v(Or,.3,{Position=g},D[1],D[2])end end end)local Vr={FREE={l.gray;l.text};PREMIUM={l.yellow;l.text},OWNER={l.text;l.yellowLight}}local Wr=Vr[yr]or Vr.FREE local sr=Sr(ur)br(sr,"MODE MINIGAME")qr(sr,{{id="Smart",text="Smart"};{id="Skip",text="Skip",lock="skip"}},function()return er.mode end,function(p)if p=="Skip"and not lr then Zr()return end er.mode=p ar()end)local mr=dr(sr,"")table.insert(y,function()local p=gr[er.mode]if mr.Text~=p then mr.Text=p end end)local pX=Sr(ur)br(pX,"KECEPATAN","speed")local yX={}for p,y in ipairs(Lr)do table.insert(yX,{id=y,text=y;lock=(y~="Aman")and"speed"or nil})end qr(pX,yX,function()return er.preset end,function(p)zr.setPreset(p)end)local RX=dr(pX,"")table.insert(y,function()local p=Ar[er.preset]or""if RX.Text~=p then RX.Text=p end end)local lX=Sr(ur)br(lX,"OTOMATISASI","automation")nr(lX,"Lempar pancing otomatis","Bot melempar sendiri.",function()return er.autoCast end,function(p)er.autoCast=p end,nil,"automation")nr(lX,"Pegang rod otomatis","Ambil rod dari tas saat farm aktif.",function()return er.autoEquip end,function(p)er.autoEquip=p end,nil,"automation")local hX=Sr(ur)br(hX,"ATUR WAKTU SENDIRI (LANJUTAN)","timing")dr(hX,"Mulai dari preset Aman, naikkan pelan-pelan.")rr(hX,"Tahan sebelum selesai","Mode Skip: detik sebelum minigame dipaksa selesai.",function()return er.skipDelay end,function(p)er.skipDelay=p zr.syncPreset()end,0,10,false,function()return er.mode=="Skip"end,"timing")nr(hX,"Percepat waktu gigitan","Perpendek waktu tunggu ikan menggigit.",function()return er.biteFast end,function(p)er.biteFast=p zr.syncPreset()end,nil,"timing")rr(hX,"Waktu tunggu gigitan","Makin kecil makin cepat, bisa ditolak server.",function()return er.biteWait end,function(p)er.biteWait=p zr.syncPreset()end,.2,6,false,function()return er.biteFast end,"timing")rr(hX,"Jeda lempar ulang","Jeda setelah dapat ikan sebelum lempar lagi.",function()return er.castCooldown end,function(p)er.castCooldown=p zr.syncPreset()end,.05,2,false,nil,"timing")rr(hX,"Batas macet","Reset otomatis jika pancing macet selama ini.",function()return er.stuckTimeout end,function(p)er.stuckTimeout=p end,5,120,true,nil,"timing")local DX=Sr(Mr)br(DX,"AUTO FAVORIT","favorit")nr(DX,"Favoritkan ikan baru","Ikan baru rarity terpilih otomatis difavoritkan.",function()return er.favOn end,function(p)er.favOn=p if p then jr=true end end,nil,"favorit")local EX=Sr(Mr)br(EX,"RARITY YANG DIFAVORITKAN","favorit")local gX=E("Frame",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y;BackgroundTransparency=1,LayoutOrder=e(EX)},EX)E("UIGridLayout",{CellSize=UDim2.new(.3333,-4,0,34),CellPadding=UDim2.fromOffset(6,6),SortOrder=Enum.SortOrder.LayoutOrder},gX)for R,h in ipairs(Dr)do local D=E("TextButton",{Text=h,Font=Enum.Font.GothamBold;TextSize=11;AutoButtonColor=false;LayoutOrder=R,BackgroundColor3=l.white,TextColor3=l.muted},gX)g(D,8)local A=L(D,l.gray,1.5)Kr(D,"favorit",{radius=8,inset=8})local e table.insert(y,function()local p=er.fav[h]and true or false if p~=e then e=p v(D,.18,{BackgroundColor3=p and l.yellow or l.white,TextColor3=p and l.text or l.muted})v(A,.18,{Color=p and l.yellowDark or l.gray})end end)D.Activated:Connect(function()er.fav[h]=not er.fav[h]p.refresh()end)end Tr(EX,"Favoritkan sekarang","primary",function()zr.favNow()end,"favorit")dr(EX,"Rarity yang dicentang dilindungi saat menjual.")local LX=Sr(Qr)br(LX,"AUTO JUAL (TANPA NPC)","jual")nr(LX,"Jual otomatis","Menjual ikan saat jumlahnya mencapai angka di bawah.",function()return er.sellOn end,function(p)zr.setSell(p)end,nil,"jual")rr(LX,"Jual saat inventory >=","Maks 500.",function()return er.sellAt end,function(p)er.sellAt=p end,1,X.MaxInventory,true,nil,"jual")rr(LX,"Jeda antar jual","Terlalu kecil bisa dianggap spam.",function()return er.sellGap end,function(p)er.sellGap=p end,.02,2,false,nil,"jual")local vX=Sr(Qr)br(vX,"CARA JUAL","jual")local AX=kr(vX,"",11,l.text,Enum.Font.GothamMedium)nr(vX,"Izinkan jual-semua","Menjual SEMUA ikan sekaligus. Mati otomatis jika ikan favorit ikut hilang.",function()return er.allowSellAll end,function(p)er.allowSellAll=p end,nil,"jual")table.insert(y,function()local p=zr.methodReport()local y="Cara jual: "..((p.learned and("sudah dipelajari"..((p.learnedKind==R("0d783cc002eb4537")and" (jual semua)"or" (per ikan)")))or"belum dipelajari. Tekan \'Pelajari cara jual\' lalu jual 1 ikan di NPC."))if AX.Text~=y then AX.Text=y end end)local eX=Sr(Qr)br(eX,"AKSI","jual")Tr(eX,"Jual sekarang","primary",function()zr.sellNow()end,"jual")Tr(eX,"Pelajari cara jual (jual 1 ikan di NPC)","ghost",function()zr.startLearn()end,"jual")Tr(eX,"Lupakan hasil pelajaran","ghost",function()zr.forget()end,"jual")local UX=kr(eX,"",11,l.text,Enum.Font.GothamMedium)table.insert(y,function()local p="Info terakhir: "..tostring(Nr.lastNote or"-")if UX.Text~=p then UX.Text=p end end)dr(eX,"Uji aman dulu: favoritkan 1 ikan murah, tekan \'Jual sekarang\'. Jika ikut hilang, jangan nyalakan jual-semua.")local function KX(p,y)local R=E("Frame",{Size=UDim2.new(1,0,0,38);BackgroundColor3=l.white;LayoutOrder=e(p)},p)g(R,10)local h=L(R,l.gray,1.5)local D=E("TextLabel",{Size=UDim2.new(1,-34,1,0),Position=UDim2.fromOffset(12,0),BackgroundTransparency=1,Text="";Font=Enum.Font.GothamMedium;TextSize=12;TextColor3=l.muted;TextXAlignment=Enum.TextXAlignment.Left;TextTruncate=Enum.TextTruncate.AtEnd},R)local v=E("TextLabel",{Size=UDim2.fromOffset(20,20),AnchorPoint=Vector2.new(1,.5),Position=UDim2.new(1,-10,.5,0);BackgroundTransparency=1,Text="v";TextColor3=l.muted,Font=Enum.Font.GothamBold;TextSize=12},R)local A=E("TextButton",{Size=UDim2.fromScale(1,1),BackgroundTransparency=1,Text="";AutoButtonColor=false},R)Kr(R,y,{radius=10;inset=12})local U=E("Frame",{Size=UDim2.new(1,0,0,0),BackgroundTransparency=1;ClipsDescendants=true,LayoutOrder=e(p)},p)local K=E("ScrollingFrame",{Size=UDim2.new(1,0,1,0);BackgroundColor3=l.offwhite,BorderSizePixel=0,ScrollBarThickness=4;ScrollBarImageColor3=l.yellowDark,CanvasSize=UDim2.new();AutomaticCanvasSize=Enum.AutomaticSize.Y;ScrollingDirection=Enum.ScrollingDirection.Y},U)g(K,8)E("UIListLayout",{Padding=UDim.new(0,2),SortOrder=Enum.SortOrder.LayoutOrder},K)E("UIPadding",{PaddingTop=UDim.new(0,4);PaddingBottom=UDim.new(0,4);PaddingLeft=UDim.new(0,4),PaddingRight=UDim.new(0,4)},K)local G=false local function N(p)G=p U.Size=p and UDim2.new(1,0,0,160)or UDim2.new(1,0,0,0)v.Text=p and"^"or"v"end A.Activated:Connect(function()N(not G)end)return{lbl=D,sf=K,setOpen=N,isOpen=function()return G end}end local function GX(p,y,R)local h=E("TextButton",{Size=UDim2.new(1,0,0,32),BackgroundColor3=l.white;Text="",AutoButtonColor=false},p)g(h,6)local D=E("TextLabel",{Size=UDim2.new(1,-16,1,0),Position=UDim2.fromOffset(8,0),BackgroundTransparency=1,Text=y;Font=Enum.Font.GothamMedium,TextSize=12;TextColor3=l.text;TextXAlignment=Enum.TextXAlignment.Left},h)h.Activated:Connect(R)return h,D end local tX=Sr(fr)br(tX,"PILIH TARGET","trade")local XX=KX(tX,"trade")XX.lbl.Text="Belum dipilih"do local p,R=nil,{}table.insert(y,function()local y,l={},{}for p,R in ipairs(j:GetPlayers())do if R~=Y then table.insert(y,R)table.insert(l,tostring(R.UserId))end end l=table.concat(l,"|")if l~=p then p=l for p,y in ipairs(R)do y:Destroy()end R={}for p,y in ipairs(y)do local l=GX(XX.sf,y.Name,function()NX.targetUserId,NX.targetName=y.UserId,y.Name XX.lbl.Text=y.Name XX.setOpen(false)end)table.insert(R,l)end end if NX.targetName and not j:GetPlayerByUserId(NX.targetUserId or 0)then XX.lbl.Text=NX.targetName.." (sudah keluar)"end end)end local SX=Sr(fr)br(SX,"PILIH RARITY","trade")local bX=KX(SX,"trade")bX.lbl.Text="Belum dipilih"do local R={}for y,l in ipairs(Dr)do local h,D=GX(bX.sf,l,function()NX.rarity,NX.fishName=l,nil bX.lbl.Text=l bX.setOpen(false)p.refresh()end)R[l]=D end table.insert(y,function()local p=kX()for y,R in pairs(R)do local l=(("%s (x%d)")):format(y,p[y]or 0)if R.Text~=l then R.Text=l end end if NX.rarity then local y=(("%s (x%d)")):format(NX.rarity,p[NX.rarity]or 0)if bX.lbl.Text~=y then bX.lbl.Text=y end end end)end local dX=Sr(fr)br(dX,"NAMA IKAN (OPSIONAL)","trade")local IX=KX(dX,"trade")IX.lbl.Text="Semua nama"do local p,R=nil,{}table.insert(y,function()if not NX.rarity then if p~=""then p=""for p,y in ipairs(R)do y.row:Destroy()end R={}end return end local y,l=PX(NX.rarity)local h=NX.rarity..(":"..table.concat(y,"|"))if h~=p then p=h for p,y in ipairs(R)do y.row:Destroy()end R={}local D=GX(IX.sf,"Semua nama",function()NX.fishName=nil IX.lbl.Text="Semua nama"IX.setOpen(false)end)table.insert(R,{row=D,txt=nil,name=nil})for p,y in ipairs(y)do local h,D=GX(IX.sf,(("%s (x%d)")):format(y,l[y]or 0),function()NX.fishName=y IX.lbl.Text=(("%s (x%d)")):format(y,l[y]or 0)IX.setOpen(false)end)table.insert(R,{row=h,txt=D,name=y})end else for p,y in ipairs(R)do if y.name then local p=(("%s (x%d)")):format(y.name,l[y.name]or 0)if y.txt.Text~=p then y.txt.Text=p end if NX.fishName==y.name and IX.lbl.Text~=p then IX.lbl.Text=p end end end end end)end local CX=Sr(fr)br(CX,"JUMLAH & AKSI","trade")rr(CX,"Jumlah ikan","Berapa ekor yang mau dikirim.",function()return NX.amount end,function(p)NX.amount=math.max(1,math.floor(p))end,1,500,true,nil,"trade")nr(CX,"Auto dekati target","Biasanya tidak perlu. Nyalakan kalau kirim jarak jauh gagal terus.",function()return NX.autoApproach end,function(p)NX.autoApproach=p end,nil,"trade")local jX=kr(CX,"",11,l.muted,Enum.Font.GothamMedium)table.insert(y,function()if jX.Text~=NX.log then jX.Text=NX.log end end)Tr(CX,"Mulai Give","primary",function()local p,y=NX.start()if not p then zr.toast("Trade gagal mulai: "..tostring(y),"warn",6)end end,"trade")Tr(CX,"Stop","ghost",function()NX.stop()end,"trade")dr(CX,"Ikan favorit otomatis di-unfavorite dulu. Dikirim satu-satu, tunggu respons baru lanjut.")local nX=Sr(fr)br(nX,"TERIMA KIRIMAN MASUK","trade")nr(nX,"Auto Accept","Otomatis terima kiriman ikan yang masuk.",function()return NX.autoAccept end,function(p)NX.autoAccept=p end,nil,"trade")dr(nX,"Popup bawaan game mungkin sempat kelihatan sebentar, itu wajar.")local rX=Sr(Yr)br(rX,"BOOST PERFORMANCE","boost")nr(rX,"Aktifkan Boost Performance","Bikin game lebih ringan biar nggak lag/panas.",function()return oX.on end,function(p)if p then local p,y=oX.enable()if not p then zr.toast("Boost Performance gagal: "..tostring(y),"warn",6)end else oX.disable()end end,nil,"boost")local qX=kr(rX,"",11,l.muted,Enum.Font.GothamMedium)table.insert(y,function()local p=(("Status: %s  |  efek mati: %d  |  model disederhanakan: %d")):format(oX.on and"AKTIF"or"mati",oX.effectCount,oX.meshCount)if qX.Text~=p then qX.Text=p end end)dr(rX,"Cuma ubah tampilan, bukan cara main. Balik normal otomatis kalau dimatikan.")local TX=Sr(Yr)br(TX,"ANTI-LOSE STREAK","streak")nr(TX,"Aktifkan Anti-Lose Streak","Rejoin otomatis saat tangkapan gagal.",function()return Ur.antiLoseStreak end,function(p)Ur.antiLoseStreak=p end,nil,"streak")local uX=kr(TX,"",11,l.muted,Enum.Font.GothamMedium)table.insert(y,function()local p=FX and"Status: sudah pernah ter-trigger sesi ini (sedang/ sudah mencoba rejoin)."or"Status: belum pernah ter-trigger sesi ini."if uX.Text~=p then uX.Text=p end end)dr(TX,"Selalu otomatis: begitu terdeteksi gagal, Auto Farm dihentikan dan !rejoin langsung dikirim 1x.")local function MX(p,y,R)local h=Ir(p)E("TextLabel",{Size=UDim2.new(.4,0,0,0);AutomaticSize=Enum.AutomaticSize.Y;BackgroundTransparency=1,Text=y;TextColor3=l.muted,Font=Enum.Font.GothamMedium;TextSize=12;TextWrapped=true;TextXAlignment=Enum.TextXAlignment.Left},h)local D=E("TextLabel",{AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,0,0,0);Size=UDim2.new(.58,0,0,0);AutomaticSize=Enum.AutomaticSize.Y;BackgroundTransparency=1,Text=R;TextColor3=l.text,Font=Enum.Font.GothamBold,TextSize=12;TextWrapped=true;TextXAlignment=Enum.TextXAlignment.Right},h)return D end local QX=Sr(Fr)local zX=E("Frame",{Size=UDim2.new(1,0,0,68);BackgroundTransparency=1;LayoutOrder=e(QX)},QX)local fX=E("Frame",{Size=UDim2.fromOffset(60,60),Position=UDim2.fromOffset(0,4),BackgroundColor3=l.yellowSoft;BorderSizePixel=0},zX)g(fX,30)L(fX,l.yellowDark,1.5)local ZX=E("TextLabel",{Size=UDim2.fromScale(1,1),BackgroundTransparency=1;Text=(string.sub(Y.Name,1,1)):upper();Font=Enum.Font.GothamBlack;TextSize=22,TextColor3=l.text},fX)local YX=E("ImageLabel",{Size=UDim2.fromScale(1,1);BackgroundTransparency=1,ImageTransparency=1,ScaleType=Enum.ScaleType.Crop},fX)g(YX,30)E("TextLabel",{Size=UDim2.new(1,-72,0,20),Position=UDim2.fromOffset(72,2);BackgroundTransparency=1;Text=Y.DisplayName,Font=Enum.Font.GothamBold;TextSize=15,TextColor3=l.text,TextXAlignment=Enum.TextXAlignment.Left;TextTruncate=Enum.TextTruncate.AtEnd},zX)E("TextLabel",{Size=UDim2.new(1,-72,0,16);Position=UDim2.fromOffset(72,23),BackgroundTransparency=1;Text="@"..Y.Name,Font=Enum.Font.Gotham,TextSize=12;TextColor3=l.muted,TextXAlignment=Enum.TextXAlignment.Left},zX)local BX=E("TextLabel",{Size=UDim2.fromOffset(74,24);Position=UDim2.fromOffset(72,44),BackgroundColor3=Wr[1],Text=yr,TextColor3=Wr[2];Font=Enum.Font.GothamBlack;TextSize=12},zX)g(BX,12)task.spawn(function()local p,y=pcall(function()return j:GetUserThumbnailAsync(Y.UserId,Enum.ThumbnailType.HeadShot,Enum.ThumbnailSize.Size180x180)end)if p and y then YX.Image=y v(YX,.3,{ImageTransparency=0})ZX.Visible=false end end)local wX=Sr(Fr)br(wX,"DETAIL AKUN")MX(wX,"Username",Y.Name)MX(wX,"Display Name",Y.DisplayName)local iX=MX(wX,"Negara","Memuat...")local cX=MX(wX,"Role",yr)cX.TextColor3=(yr=="FREE")and l.muted or l.yellowDark task.spawn(function()local p,y=pcall(function()return Z:GetCountryRegionForPlayerAsync(Y)end)iX.Text=((p and(type(y)=="string"and y~="")))and y or"Tidak diketahui"end)dr(wX,lr and"Semua fitur terbuka, tanpa batasan."or"Akun FREE hanya membuka Auto Farm mode Smart.")local HX local function OX(p,y)if HX==p then return end HX=p for R,h in ipairs(s)do if R==p then h.cg.Visible=true if y then h.cg.GroupTransparency,h.cg.Position=0,UDim2.new()else h.cg.GroupTransparency,h.cg.Position=1,UDim2.fromOffset(0,14)v(h.cg,.25,{GroupTransparency=0,Position=UDim2.new()})end else h.cg.Visible=false end v(V[R],.18,{TextColor3=(R==p)and l.text or l.muted})end local R=UDim2.new(((p-1))/#h,3,0,3)if y then x.Position=R else v(x,.3,{Position=R},D[1],D[2])end end local xX={Favorit="favorit";Jual="jual",Trade="trade";Extras="streak"}for p,y in ipairs(h)do local R=E("TextButton",{Size=UDim2.new(1/#h,0,1,0);Position=UDim2.new(((p-1))/#h,0,0,0);BackgroundTransparency=1;Text=y,Font=Enum.Font.GothamBold,TextSize=12;TextColor3=l.muted,AutoButtonColor=false;ZIndex=2},O)R.Activated:Connect(function()OX(p)end)V[p]=R if hr(xX[y])then vr(R,l.muted,Vector2.new(1,.5),UDim2.new(1,-6,.5,0))end end local JX=E("CanvasGroup",{AnchorPoint=Vector2.new(.5,0),Position=UDim2.new(.5,0,0,48),Size=UDim2.new(1,-28,0,0);AutomaticSize=Enum.AutomaticSize.Y;BackgroundColor3=l.text,BorderSizePixel=0;GroupTransparency=1;Visible=false,ZIndex=40},n)g(JX,10)local VX=E("Frame",{Size=UDim2.new(0,5,1,0),BackgroundColor3=l.yellow,BorderSizePixel=0},JX)local WX=E("TextLabel",{Size=UDim2.new(1,0,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundTransparency=1;Text="";TextColor3=l.white;Font=Enum.Font.GothamMedium;TextSize=12,TextWrapped=true;TextXAlignment=Enum.TextXAlignment.Left},JX)E("UIPadding",{PaddingTop=UDim.new(0,9),PaddingBottom=UDim.new(0,9);PaddingLeft=UDim.new(0,16),PaddingRight=UDim.new(0,10)},WX)E("UISizeConstraint",{MaxSize=Vector2.new(360,math.huge)},JX)local sX=0 local aX={ok=l.green,warn=l.yellow;err=l.red;info=l.yellowLight}local mX=E("ImageButton",{Name="Bubble";Size=UDim2.fromOffset(60,60);AnchorPoint=Vector2.new(.5,.5);BackgroundColor3=l.yellow;AutoButtonColor=false;Image="";ScaleType=Enum.ScaleType.Crop,Visible=false},P)g(mX,30)local yc=L(mX,l.yellowDark,3)local Rc=E("UIScale",{Scale=0},mX)local lc=E("TextLabel",{Size=UDim2.fromScale(1,1);BackgroundTransparency=1,Text=K,Font=Enum.Font.GothamBlack;TextSize=20,TextColor3=l.text},mX)local hc=E("Frame",{Size=UDim2.fromOffset(14,14);AnchorPoint=Vector2.new(1,0);Position=UDim2.new(1,1,0,-1);BackgroundColor3=l.gray,BorderSizePixel=0;ZIndex=3},mX)g(hc,7)L(hc,l.white,2);(M:Create(yc,TweenInfo.new(1.1,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,-1,true),{Transparency=.7})):Play()local function Dc()mX.Position=UDim2.fromOffset(C.X,C.Y)end Dc()function zr.toast(p,y,R)sX=sX+1 local h=sX WX.Text=tostring(p)VX.BackgroundColor3=aX[y or"info"]or l.yellow JX.Visible=true JX.GroupTransparency=1 JX.Position=UDim2.new(.5,0,0,40)v(JX,.32,{GroupTransparency=.03,Position=UDim2.new(.5,0,0,58)},D[1],D[2])if k.minimized then v(Rc,.12,{Scale=1.25})task.delay(.14,function()v(Rc,.2,{Scale=1},D[1],D[2])end)end task.delay(R or 4,function()if sX==h then v(JX,.25,{GroupTransparency=1;Position=UDim2.new(.5,0,0,44)})task.delay(.3,function()if sX==h then JX.Visible=false end end)end end)end local Ec=E("Frame",{Size=UDim2.fromScale(1,1),BackgroundColor3=Color3.new(0,0,0),BackgroundTransparency=1,Visible=false,Active=true;ZIndex=60},n)local gc=E("CanvasGroup",{AnchorPoint=Vector2.new(.5,.5);Position=UDim2.fromScale(.5,.5);Size=UDim2.new(1,-40,0,0),AutomaticSize=Enum.AutomaticSize.Y,BackgroundColor3=l.white;GroupTransparency=1;ZIndex=61},Ec)g(gc,14)L(gc,l.yellow,2)E("UISizeConstraint",{MaxSize=Vector2.new(320,math.huge)},gc)local Lc=E("UIScale",{Scale=.8},gc)E("UIPadding",{PaddingTop=UDim.new(0,14);PaddingBottom=UDim.new(0,14),PaddingLeft=UDim.new(0,14);PaddingRight=UDim.new(0,14)},gc)E("UIListLayout",{Padding=UDim.new(0,8),SortOrder=Enum.SortOrder.LayoutOrder},gc)local vc=kr(gc,"",15,l.text,Enum.Font.GothamBold)local Ac=kr(gc,"",12,l.muted,Enum.Font.Gotham)local ec=E("Frame",{Size=UDim2.new(1,0,0,38),BackgroundTransparency=1,LayoutOrder=e(gc)},gc)E("UIListLayout",{FillDirection=Enum.FillDirection.Horizontal;Padding=UDim.new(0,8),SortOrder=Enum.SortOrder.LayoutOrder},ec)local Uc=E("TextButton",{Size=UDim2.new(.5,-4,1,0),BackgroundColor3=l.yellow;Text="Batal";TextColor3=l.text;Font=Enum.Font.GothamBold,TextSize=13,LayoutOrder=1,AutoButtonColor=false},ec)g(Uc,10)local Kc=E("TextButton",{Size=UDim2.new(.5,-4,1,0),BackgroundColor3=l.red,Text="",TextColor3=l.white;Font=Enum.Font.GothamBold;TextSize=13,LayoutOrder=2,AutoButtonColor=false},ec)g(Kc,10)local Gc,Nc,tc=0,nil,nil local function Xc()local p=Gc v(Ec,.18,{BackgroundTransparency=1})v(gc,.18,{GroupTransparency=1})v(Lc,.18,{Scale=.85})task.delay(.2,function()if Gc==p then Ec.Visible=false end end)end function zr.ask(p,y,R,l,h)Gc=Gc+1 vc.Text,Ac.Text,Kc.Text=p,y,R Nc,tc=l,h Ec.Visible=true Ec.BackgroundTransparency,gc.GroupTransparency,Lc.Scale=1,1,.8 v(Ec,.2,{BackgroundTransparency=.5})v(gc,.2,{GroupTransparency=0})v(Lc,.32,{Scale=1},D[1],D[2])end Kc.Activated:Connect(function()local p=Nc Nc=nil Xc()if p then p()end end)Uc.Activated:Connect(function()local p=tc Nc,tc=nil,nil Xc()if p then p()end end)local Sc local function Pc(p,y)p.InputBegan:Connect(function(p)if Sc then return end local R=p.UserInputType if R==Enum.UserInputType.MouseButton1 or R==Enum.UserInputType.Touch then Sc={input=p,cfg=y;sx=p.Position.X,sy=p.Position.Y;moved=false;touch=(R==Enum.UserInputType.Touch)}if y.onStart then y.onStart()end end end)end table.insert(tr,r.InputChanged:Connect(function(p)local y=Sc if not y then return end if(y.touch and p==y.input)or((not y.touch)and p.UserInputType==Enum.UserInputType.MouseMovement)then local R,l=p.Position.X-y.sx,p.Position.Y-y.sy if not y.moved and(R*R+l*l)>36 then y.moved=true end if y.moved then y.cfg.onMove(R,l)end end end))table.insert(tr,r.InputEnded:Connect(function(p)local y=Sc if y and((p==y.input or((not y.touch)and p.UserInputType==Enum.UserInputType.MouseButton1)))then Sc=nil if y.cfg.onEnd then y.cfg.onEnd(y.moved)end end end))local kc Pc(u,{onStart=function()kc=I end;onMove=function(p,y)local R=S()I=Vector2.new(math.clamp(kc.X+p,0,math.max(0,R.X-d.X)),math.clamp(kc.Y+y,0,math.max(0,R.Y-d.Y)))T()end})local bc=E("TextButton",{Size=UDim2.fromOffset(26,26),AnchorPoint=Vector2.new(1,1);Position=UDim2.new(1,-2,1,-2);BackgroundTransparency=1,Text="",ZIndex=50;AutoButtonColor=false},n)local dc={}for p,y in ipairs({{18,18};{12;18},{18,12};{6,18};{12;12},{18;6}})do local R=E("Frame",{Size=UDim2.fromOffset(3,3);Position=UDim2.fromOffset(y[1],y[2]);BackgroundColor3=l.yellowDark;BorderSizePixel=0;ZIndex=51},bc)g(R,2)table.insert(dc,R)end bc.MouseEnter:Connect(function()for p,y in ipairs(dc)do v(y,.12,{BackgroundColor3=l.text})end end)bc.MouseLeave:Connect(function()for p,y in ipairs(dc)do v(y,.12,{BackgroundColor3=l.yellowDark})end end)local Ic Pc(bc,{onStart=function()Ic=d end;onMove=function(p,y)local R=S()local l=math.min(720,math.max(300,(R.X-I.X)-4))local h=math.min(820,math.max(340,(R.Y-I.Y)-4))d=Vector2.new(math.clamp(Ic.X+p,300,l),math.clamp(Ic.Y+y,340,h))T()end})local function Cc(p)local y=S()return Vector2.new(math.clamp(p.X,32,math.max(32,y.X-32)),math.clamp(p.Y,32,math.max(32,y.Y-32)))end local function jc()if k.minimized or not k.ready or k.busy then return end k.minimized,k.busy=true,true if not k.bubbleMoved then C=Cc(Vector2.new(I.X+30,I.Y+30))end Dc()v(n,.28,{GroupTransparency=1,Position=UDim2.fromOffset(C.X,C.Y)},Enum.EasingStyle.Quad,Enum.EasingDirection.In)v(q,.28,{Scale=.15},Enum.EasingStyle.Quad,Enum.EasingDirection.In)task.delay(.3,function()n.Visible=false mX.Visible=true Rc.Scale=0 v(Rc,.4,{Scale=1},D[1],D[2])k.busy=false end)end local function nc()if not k.minimized or k.busy then return end k.minimized,k.busy=false,true local p=S()I=Vector2.new(math.clamp(C.X-30,8,math.max(8,(p.X-d.X)-8)),math.clamp(C.Y-30,8,math.max(8,(p.Y-d.Y)-8)))v(Rc,.15,{Scale=0})n.Size=UDim2.fromOffset(d.X,d.Y)n.Position=UDim2.fromOffset(C.X,C.Y)q.Scale,n.GroupTransparency,n.Visible=.15,1,true v(n,.36,{GroupTransparency=0,Position=UDim2.fromOffset(I.X+d.X/2,I.Y+d.Y/2)})v(q,.42,{Scale=1},D[1],D[2])task.delay(.18,function()mX.Visible=false end)task.delay(.45,function()k.busy=false end)end local rc Pc(mX,{onStart=function()rc=C end;onMove=function(p,y)k.bubbleMoved=true C=Cc(Vector2.new(rc.X+p,rc.Y+y))Dc()end;onEnd=function(p)if not p then nc()end end})c.Activated:Connect(jc)function p.fadeOut(p)v(q,.25,{Scale=.85})v(n,.25,{GroupTransparency=1})v(Rc,.2,{Scale=0})task.delay(.3,p)end H.Activated:Connect(function()zr.ask("Tutup GUI?","Semua fitur akan berhenti dan GUI dihapus. Lanjutkan?","Lanjut",function()zr.ask("Konfirmasi terakhir","Ini MENUTUP TOTAL program. Untuk menampilkan lagi harus eksekusi script ulang. Yakin?","Tutup Total",function()zr.closeAll()end)end)end)table.insert(tr,r.InputBegan:Connect(function(p,y)if not y and(k.ready and p.KeyCode==X.ToggleKey)then if k.minimized then nc()else jc()end end end))function p.refresh()for p,y in ipairs(y)do pcall(y)end end zr.refreshUI=p.refresh task.spawn(function()while Xr do Gr()Rr.Text=Nr.status or""Er.Text=(("Inv %s/%d  |  Tangkap %d  |  Fav %d  |  Jual %d")):format(tostring(Nr.inv or"?"),X.MaxInventory,Nr.caught,Nr.fav,Nr.sold)local y=er.farm and l.green or l.gray pr.BackgroundColor3=y hc.BackgroundColor3=er.farm and l.green or l.gray p.refresh()task.wait(.5)end end)task.spawn(function()while Xr do Q.Position=UDim2.new(-0.3,0,-0.4,0)if n.Visible and not k.minimized then v(Q,1.1,{Position=UDim2.new(1.3,0,-0.4,0)},Enum.EasingStyle.Sine,Enum.EasingDirection.InOut)end task.wait(6)end end)local qc pc(function(p)F.Image=p v(F,.4,{ImageTransparency=0})mX.Image=p lc.Visible=false if qc then qc.Image=p v(qc,.4,{ImageTransparency=0})end end)local Tc=E("CanvasGroup",{AnchorPoint=Vector2.new(.5,.5);Position=UDim2.fromScale(.5,.5),Size=UDim2.fromOffset(280,220);BackgroundColor3=l.white;BorderSizePixel=0,GroupTransparency=1},P)g(Tc,20)L(Tc,l.yellow,2)local uc=E("UIScale",{Scale=.8},Tc)local Mc=E("Frame",{AnchorPoint=Vector2.new(.5,0),Position=UDim2.new(.5,0,0,20),Size=UDim2.fromOffset(88,88),BackgroundColor3=l.yellow,BorderSizePixel=0},Tc)g(Mc,44)L(Mc,l.yellowDark,3)local Qc=E("UIScale",{Scale=1},Mc)E("TextLabel",{Size=UDim2.fromScale(1,1);BackgroundTransparency=1,Text=K,Font=Enum.Font.GothamBlack;TextSize=30,TextColor3=l.text},Mc)qc=E("ImageLabel",{Size=UDim2.fromScale(1,1);BackgroundTransparency=1;ImageTransparency=1;ScaleType=Enum.ScaleType.Crop},Mc)g(qc,44)E("TextLabel",{Position=UDim2.fromOffset(0,118),Size=UDim2.new(1,0,0,22),BackgroundTransparency=1,Text=N,Font=Enum.Font.GothamBlack;TextSize=18;TextColor3=l.text},Tc)E("TextLabel",{Position=UDim2.fromOffset(0,139);Size=UDim2.new(1,0,0,14);BackgroundTransparency=1;Text=t,Font=Enum.Font.GothamBold,TextSize=11,TextColor3=l.yellowDark},Tc)local zc=E("Frame",{AnchorPoint=Vector2.new(.5,0);Position=UDim2.new(.5,0,0,168);Size=UDim2.fromOffset(200,6);BackgroundColor3=l.line,BorderSizePixel=0},Tc)g(zc,3)local fc=E("Frame",{Size=UDim2.fromScale(0,1);BackgroundColor3=l.yellow,BorderSizePixel=0},zc)g(fc,3)local Zc=E("TextLabel",{Position=UDim2.fromOffset(0,180),Size=UDim2.new(1,0,0,16),BackgroundTransparency=1,Text="",Font=Enum.Font.Gotham;TextSize=10,TextColor3=l.muted},Tc);(M:Create(Qc,TweenInfo.new(.7,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,-1,true),{Scale=1.08})):Play()task.spawn(function()v(Tc,.35,{GroupTransparency=0})v(uc,.45,{Scale=1},D[1],D[2])local y={{(("Akun %s - mode %s")):format(Y.Name,yr);.2};{((hookmetamethod and getnamecallmethod))and"Fitur executor lengkap"or"Fitur executor terbatas";.35},{Pr and"Minigame & state game ditemukan"or"Minigame ditemukan (mode GUI)";.7};{"Menyiapkan tampilan...",1}}for p,y in ipairs(y)do Zc.Text=y[1]v(fc,.4,{Size=UDim2.fromScale(y[2],1)})task.wait(.5)end task.wait(.15)v(Tc,.3,{GroupTransparency=1})v(uc,.3,{Scale=1.12})task.wait(.3)Tc:Destroy()T()n.Visible=true OX(1,true)p.refresh()v(n,.35,{GroupTransparency=0})v(q,.5,{Scale=1},D[1],D[2])k.ready=true zr.toast((("Masuk sebagai %s. Semua fitur MATI. Nyalakan sesuai kebutuhan.")):format(yr),lr and"ok"or"info",5)end)function p.destroy()pcall(function()P:Destroy()end)end return p end local Rc=yc()local function lc()Xr=false er.farm,er.sellOn=false,false pcall(oX.disable)pcall(sr)if Sr then pcall(Sr.SetHolding,Sr,false)end for p,y in ipairs(tr)do pcall(function()y:Disconnect()end)end if C[l.g2o]then C[l.g2o].handler=nil end pcall(Rc.destroy)C[l.g0a]=nil end function zr.closeAll()Rc.fadeOut(lc)end C[l.g0a]={Destroy=lc}task.spawn(function()pcall(lX)end)w("loaded v"..(X.Version..". Semua fitur mati. Minimize/restore:"),X.ToggleKey.Name)
+local function runExclusive(fn)
+if invBusy then
+setNotice("Sedang memproses inventory, coba lagi sebentar", 3, "info")
+return
+end
+invBusy = true
+task.spawn(function()
+local ok, err = pcall(fn)
+if not ok then warn(_D("20572bd117d77918bc"), err) end
+invBusy = false
+end)
+end
+local learn = { active = false, ids = {}, seen = {}, token = 0 }
+local BLACKLIST = {
+[_D("3d743dca24f65a3f93")] = true, [_D("387c3dd631fa5c36886b56e0127220")] = true, [_D("38712bc30dea5c19807b43")] = true, [_D("35723acb05e66e33956d")] = true,
+[_D("367420cb04fe413fb36d44e117690bd406f158")] = true, [_D("2e6d2ac317fa7f2e936d56ff3e6b2bcc17")] = true, [_D("2b682cce0aec441c887b5fd71a692dca")] = true,
+[_D("287521d52df05833876154f50f7421cc")] = true, [_D("28782dd006eb6833926b58e21e6f37")] = true, [_D("3d743dca20fe593d897c79fb0f7428db")] = true,
+}
+local function isSellName(n)
+n = string.lower(n)
+return string.find(n, "sell", 1, true) ~= nil or string.find(n, "jual", 1, true) ~= nil
+end
+local function isNoise(remote)
+local n = remote.Name
+if isSellName(n) then return false end
+return BLACKLIST[n] or string.sub(n, 1, 10) == _D("327338c70deb43289857")
+end
+local function finishLearn(remote, packed)
+learn.active = false
+local T = { remote = remote, args = packed, kind = _D("0d783cc002eb4537") }
+for i = 1, packed.n do
+local a = packed[i]
+if type(a) == "string"and learn.ids[a] then
+T.kind = _D("087420c50ffa")
+T.idx = i
+break
+elseif type(a) == "table"then
+local cnt, all = 0, true
+for _, v in pairs(a) do
+cnt = cnt + 1
+if not (type(v) == "string"and learn.ids[v]) then
+all = false
+break
+end
+end
+if cnt > 0 and all then
+T.kind = _D("166822d60a")
+T.idx = i
+break
+end
+end
+end
+env[K.g1h] = T
+Core.badMethod = {}
+sellFails = 0
+saveSell(T)
+setNotice(("Remote jual dipelajari: %s [%s]"):format(remote.Name, T.kind), 10, "ok")
+end
+local function onLearnCall(remote, method, packed)
+if not learn.active then return end
+if typeof(remote) ~= "Instance"then return end
+if not (remote:IsA("RemoteEvent") or remote:IsA("RemoteFunction")) then return end
+if isNoise(remote) then return end
+learn.seen[remote] = packed
+if isSellName(remote.Name) then finishLearn(remote, packed) end
+end
+local function installHook()
+env[K.g2o] = env[K.g2o] or {}
+local hc = env[K.g2o]
+hc.handler = onLearnCall
+if env[K.g3v] then return true end
+if not (hookmetamethod and getnamecallmethod) then return false end
+local old
+local hook = function(self, ...)
+local method = getnamecallmethod()
+local m = string.lower(tostring(method))
+if m == "fireserver"or m == "invokeserver"then
+local h = hc.handler
+if h and not (checkcaller and checkcaller()) then
+task.defer(h, self, method, table.pack(...))
+end
+end
+return old(self, ...)
+end
+if newcclosure then hook = newcclosure(hook) end
+old = hookmetamethod(game, "__namecall", hook)
+env[K.g3v] = true
+return true
+end
+function Core.startLearn()
+if denyFree() then return end
+if not installHook() then
+setNotice("Executor tidak punya hookmetamethod, tidak bisa belajar remote jual", 8, "err")
+return
+end
+local fish = fetchInventory()
+learn.ids = {}
+if fish then
+for _, f in ipairs(fish) do
+if f.uniqueId then learn.ids[f.uniqueId] = true end
+end
+end
+learn.seen = {}
+learn.active = true
+learn.token = learn.token + 1
+local token = learn.token
+setNotice("MODE BELAJAR: jual 1 ikan lewat NPC sekarang (60 dtk)", 60, "info")
+task.delay(60, function()
+if learn.active and learn.token == token then
+learn.active = false
+local distinct, onlyR, onlyP = 0, nil, nil
+local names = {}
+for r, p in pairs(learn.seen) do
+distinct = distinct + 1
+onlyR, onlyP = r, p
+table.insert(names, r:GetFullName())
+end
+if distinct == 1 then
+finishLearn(onlyR, onlyP)
+else
+log("learn timeout, remotes seen:", table.concat(names, ", "))
+setNotice(distinct == 0 and "Tidak ada remote terdeteksi"or "Remote ambigu, lihat console", 8, "warn")
+end
+end
+end)
+end
+function Core.forget()
+if denyFree() then return end
+env[K.g1h] = nil
+Core.badMethod = {}
+if delfile and isfile then pcall(function() if isfile(CONFIG.SellFile) then delfile(CONFIG.SellFile) end end) end
+setNotice("Remote jual hasil belajar dilupakan", 4, "info")
+end
+task.spawn(function()
+for _, root in ipairs({ ReplicatedStorage, workspace }) do
+for _, d in ipairs(root:GetDescendants()) do
+if d:IsA("RemoteEvent") or d:IsA("RemoteFunction") then
+local n = string.lower(d.Name)
+if string.find(n, "sell", 1, true) or string.find(n, "jual", 1, true) or string.find(n, "shop", 1, true) or string.find(n, "merchant", 1, true) then
+table.insert(sellCandidates, d:GetFullName())
+end
+end
+end
+end
+if #sellCandidates > 0 then log("sell remote candidates:", table.concat(sellCandidates, ", ")) end
+end)
+loadSell()
+local function findRodTool(container)
+if not container then return nil end
+for _, t in ipairs(container:GetChildren()) do
+if t:IsA("Tool") and CollectionService:HasTag(t, _D("29722a")) then return t end
+end
+return nil
+end
+local function ensureRod()
+local char = LocalPlayer.Character
+local hum = char and char:FindFirstChildOfClass("Humanoid")
+if not (hum and hum.Health > 0) then return nil end
+local held = findRodTool(char)
+if held then return held end
+if S.autoEquip then
+local tool = findRodTool(LocalPlayer:FindFirstChildOfClass("Backpack"))
+if tool then pcall(hum.EquipTool, hum, tool) end
+end
+return nil
+end
+local function virtualClick()
+if os.clock() - lastClick < 1.5 then return end
+lastClick = os.clock()
+pcall(function()
+local vim = game:GetService("VirtualInputManager")
+local cam = workspace.CurrentCamera
+local size = cam and cam.ViewportSize or Vector2.new(800, 600)
+vim:SendMouseButtonEvent(size.X * 0.5, size.Y * 0.5, 0, true, game, 0)
+task.wait(0.05)
+vim:SendMouseButtonEvent(size.X * 0.5, size.Y * 0.5, 0, false, game, 0)
+end)
+end
+local function canFish()
+if not S.farm or sellBusy then return false end
+if stats.inv and stats.inv >= CONFIG.MaxInventory then
+if not (S.sellOn and learnedTemplate()) then
+stats.status = (_zr and "Inventory penuh (%d). Jual dulu / aktifkan Auto Jual."
+or "Inventory penuh (%d). Jual manual di NPC (Auto Jual khusus PREMIUM)."):format(stats.inv)
+return false
+end
+end
+return true
+end
+local function castStep()
+if not canFish() then return end
+if not G.fishState then pcall(discoverGameState) end
+pcall(applyTuning)
+local held = ensureRod()
+if not held then stats.status = "Rod belum di-equip"return end
+if mg and mg:IsActive() then busySince = nil return end
+local fs, rs = G.fishState, G.rodState
+if fs and rs then
+if not rs.isEquipped then stats.status = "Menunggu rod siap"return end
+if fs.casted or fs.fishingInProgress then
+busySince = busySince or os.clock()
+stats.status = "Menunggu ikan menggigit"
+if os.clock() - busySince > S.stuckTimeout then
+pcall(rs.CleanupFishing, rs)
+busySince = nil
+end
+return
+end
+busySince = nil
+if S.autoCast and fs.canCast and not fs.castingCooldown and rs:IsValidRod() and G.actionStart then
+stats.status = "Melempar pancing"
+task.spawn(G.actionStart)
+end
+elseif S.autoCast then
+if CONFIG.AllowClickFallback then
+stats.status = "State game tidak ditemukan, pakai klik"
+virtualClick()
+else
+stats.status = "State game tidak ditemukan (butuh getconnections + getupvalues)"
+end
+end
+end
+function Core.syncPreset()
+for _, name in ipairs(PRESET_ORDER) do
+local p = PRESETS[name]
+if S.skipDelay == p.skipDelay and S.biteFast == p.biteFast and S.biteWait == p.biteWait and S.castCooldown == p.castCooldown then
+S.preset = name
+return
+end
+end
+S.preset = "Kustom"
+end
+function Core.setPreset(name)
+local p = PRESETS[name]
+if not p then return end
+if not _zr and name ~= "Aman"then denyFree() return end
+S.skipDelay, S.biteFast, S.biteWait, S.castCooldown = p.skipDelay, p.biteFast, p.biteWait, p.castCooldown
+S.preset = name
+Core.skipFails = 0
+end
+function Core.setFarm(v)
+_zq()
+S.farm = v and true or false
+if S.farm then
+invDirty = true
+Core.skipFails = 0
+Core.pendingVerify = nil
+stats.status = "Farm aktif"
+setNotice("Farm mancing aktif", 3, "ok")
+else
+if mg then pcall(mg.SetHolding, mg, false) end
+resetControl()
+busySince = nil
+Core.pendingVerify = nil
+pcall(restoreTuning)
+stats.status = "Farm dimatikan"
+setNotice("Farm mancing dimatikan", 3, "info")
+end
+end
+local function armSell()
+sellFails = 0
+sellCooldownUntil = 0
+invDirty = true
+S.sellOn = true
+local inv = stats.inv
+setNotice(("Auto jual aktif: jual saat inventory >= %d (sekarang %s)"):format(S.sellAt, inv and tostring(inv) or "?"), 6, "ok")
+end
+function Core.setSell(v)
+if not v then
+S.sellOn = false
+return
+end
+if denyFree() then return end
+local why, code = sellBlocked(false)
+if code == "none"then
+setNotice(why, 9, "warn")
+return
+end
+if code == "allow"and Core.ask then
+Core.ask("Izinkan jual-semua?",
+"Remote jual hasil Pelajari menjual SEMUA ikan sekaligus. Sebelum menjual, ikan rarity pilihanmu difavoritkan (jika Auto Favorit aktif) dan dicek ulang; jika favorit hilang, Auto Jual mati otomatis. Izinkan dan nyalakan Auto Jual?",
+"Izinkan", function()
+S.allowSellAll = true
+armSell()
+Core.refreshUI()
+end)
+return
+end
+armSell()
+end
+function Core.favNow()
+if denyFree() then return end
+runExclusive(function()
+local n = favoritePass(refreshInventory())
+setNotice(("%d ikan difavoritkan"):format(n), 4, n > 0 and "ok"or "info")
+end)
+end
+function Core.sellNow()
+if denyFree() then return end
+local why, code = sellBlocked(false)
+if not why then
+runExclusive(function() sellPass(false) end)
+elseif code == "allow"and Core.ask then
+Core.ask("Jual semua ikan?",
+"Remote jual ini menjual SEMUA ikan non-favorit sekaligus. Lanjutkan sekali ini?",
+"Ya, jual", function() runExclusive(function() sellPass(true) end) end)
+else
+setNotice(why, 8, "warn")
+end
+end
+function Core.methodReport()
+local T = learnedTemplate()
+return { learned = T and (T.remote.Name .. " [".. T.kind .. "]") or nil, learnedKind = T and T.kind or nil, sellFishPresent = R.rB ~= nil }
+end
+function Core.capsLine()
+return ("minigame: %s\nstate game (Skip/Tuning): %s\nlempar otomatis: %s\nhook belajar jual: %s\nfile (logo/jual): %s\ntuning waktu: %s"):format(
+mg and "OK"or "X",
+mgState and "OK"or "X (pakai GUI)",
+G.fishState and "OK"or "belum ditemukan",
+(hookmetamethod and getnamecallmethod) and "OK"or "X",
+(writefile and readfile and isfile) and "OK"or "X",
+(G.fishState and G.origWait ~= nil) and "OK"or "belum terbaca")
+end
+local _z8 = false
+local _zb = nil
+local function _zc(text)
+local okTCS = pcall(function()
+if TextChatService.ChatVersion ~= Enum.ChatVersion.TextChatService then error("legacy chat") end
+local channels = TextChatService:FindFirstChild("TextChannels") or TextChatService:WaitForChild("TextChannels", 3)
+if not channels then error("no TextChannels") end
+local ch = channels:FindFirstChild(_D("295f16e506f149288064")) or channels:WaitForChild(_D("295f16e506f149288064"), 3)
+if not ch then
+for _, c in ipairs(channels:GetChildren()) do
+if c:IsA("TextChannel") and c.Name ~= "RBXSystem"and c.Name ~= "RBXTeam"then ch = c break end
+end
+end
+if not ch then error("no channel") end
+ch:SendAsync(text)
+end)
+if okTCS then return "TextChatService"end
+local okLeg = pcall(function()
+local ev = ReplicatedStorage:FindFirstChild(_D("3f7828c316f35819896943c7026e3ac70edc443b954d41f115693d"))
+local say = ev and ev:FindFirstChild(_D("287c37ef06ec5f3b866d65f10a682bd117"))
+if not say then error("x") end
+say:FireServer(text, _D("3a7122"))
+end)
+if okLeg then return "legacy"end
+return nil
+end
+local function _za()
+_zb = _zc(_D("5a6f2bc80cf642"))
+if _zb then
+setNotice("Anti-Lose Streak: !rejoin terkirim 1x (".. _zb .. "), auto farm dihentikan.", 8, "warn")
+else
+setNotice("Anti-Lose Streak: !rejoin GAGAL terkirim (chat tidak ditemukan). Auto farm dihentikan.", 10, "warn")
+end
+task.delay(3, function()
+pcall(function()
+if LocalPlayer and LocalPlayer.Parent then
+TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
+end
+end)
+end)
+end
+local function _z9()
+if _z8 then return end
+_z8 = true
+S.farm = false
+_za()
+end
+
+local Boost = { on = false, saved = nil, conns = {}, effectCount = 0, meshCount = 0 }
+local EFFECT_CLASSES = { "ParticleEmitter", "Trail", "Beam", "Smoke", "Fire", "Sparkles", "Highlight" }
+local POST_FX_CLASSES = { "BloomEffect", "SunRaysEffect", "ColorCorrectionEffect", "DepthOfFieldEffect", "BlurEffect" }
+
+local FX_FIELDS = {
+	Atmosphere = { Density = 0, Haze = 0, Glare = 0 },
+	Clouds = { Enabled = false, Cover = 0, Density = 0 },
+}
+local function isEffect(inst)
+	for _, c in ipairs(EFFECT_CLASSES) do if inst:IsA(c) then return true end end
+	return false
+end
+local function setEffectsEnabled(enabled)
+	local n = 0
+	for _, inst in ipairs(workspace:GetDescendants()) do
+		if isEffect(inst) then
+			local ok, cur = pcall(function() return inst.Enabled end)
+			if ok and cur ~= enabled then
+				pcall(function() inst.Enabled = enabled end)
+				n = n + 1
+			end
+		end
+	end
+	return n
+end
+
+local function setMeshFidelity(enabled, store)
+	local n = 0
+	for _, inst in ipairs(workspace:GetDescendants()) do
+		if inst:IsA("MeshPart") then
+			if enabled then
+				local okR, cur = pcall(function() return inst.RenderFidelity end)
+				if okR and cur ~= Enum.RenderFidelity.Performance then
+					store[inst] = cur
+					pcall(function() inst.RenderFidelity = Enum.RenderFidelity.Performance end)
+					n = n + 1
+				end
+			else
+				local orig = store[inst]
+				if orig ~= nil then pcall(function() inst.RenderFidelity = orig end) end
+			end
+		end
+	end
+	return n
+end
+function Boost.enable()
+	if not _zr then return false, "Khusus PREMIUM/OWNER" end
+	if Boost.on then return true end
+	local ok, saved = pcall(function()
+		local gs = UserSettings and UserSettings():GetService("UserGameSettings")
+		return {
+			quality = gs and gs.SavedQualityLevel,
+			shadows = Lighting.GlobalShadows,
+			tech = Lighting.Technology,
+			diffuse = Lighting.EnvironmentDiffuseScale,
+			specular = Lighting.EnvironmentSpecularScale,
+			shadowSoft = Lighting.ShadowSoftness,
+			waterWave = workspace.Terrain and workspace.Terrain.WaterWaveSize,
+			waterSpeed = workspace.Terrain and workspace.Terrain.WaterWaveSpeed,
+			waterReflect = workspace.Terrain and workspace.Terrain.WaterReflectance,
+			postFx = {},
+			fxInst = {},
+			meshFidelity = {},
+		}
+	end)
+	if not ok then return false, "Gagal membaca pengaturan grafis" end
+	Boost.saved = saved
+
+	Boost.on = true
+	pcall(function()
+		local gs = UserSettings():GetService("UserGameSettings")
+		gs.SavedQualityLevel = Enum.SavedQualitySetting.QualityLevel1
+	end)
+	pcall(function() Lighting.GlobalShadows = false end)
+	pcall(function() Lighting.Technology = Enum.Technology.Compatibility end)
+	pcall(function() Lighting.EnvironmentDiffuseScale = 0 end)
+	pcall(function() Lighting.EnvironmentSpecularScale = 0 end)
+	pcall(function() Lighting.ShadowSoftness = 0 end)
+	for _, fx in ipairs(POST_FX_CLASSES) do
+		for _, inst in ipairs(Lighting:GetChildren()) do
+			if inst.ClassName == fx then
+				local okE, en = pcall(function() return inst.Enabled end)
+				if okE then
+					saved.postFx[inst] = en
+					pcall(function() inst.Enabled = false end)
+				end
+			end
+		end
+	end
+	for _, inst in ipairs(Lighting:GetChildren()) do
+		local fields = FX_FIELDS[inst.ClassName]
+		if fields then
+			local snap = {}
+			for field in pairs(fields) do
+				local okR, val = pcall(function() return inst[field] end)
+				if okR then snap[field] = val end
+			end
+			saved.fxInst[inst] = snap
+			for field, newVal in pairs(fields) do
+				pcall(function() inst[field] = newVal end)
+			end
+		end
+	end
+	pcall(function()
+		local t = workspace.Terrain
+		if t then
+			t:SetAttribute("_boostHadDeco", true)
+			t:SetDecorationsVisible(false)
+			t.WaterWaveSize = 0
+			t.WaterWaveSpeed = 0
+			t.WaterReflectance = 0
+		end
+	end)
+	Boost.effectCount = setEffectsEnabled(false)
+	Boost.meshCount = setMeshFidelity(true, saved.meshFidelity)
+	table.insert(Boost.conns, workspace.DescendantAdded:Connect(function(inst)
+		if isEffect(inst) then
+			task.defer(function() if Boost.on then pcall(function() inst.Enabled = false end) end end)
+		elseif inst:IsA("MeshPart") then
+			task.defer(function()
+				if Boost.on and Boost.saved then
+					local okR, cur = pcall(function() return inst.RenderFidelity end)
+					if okR and cur ~= Enum.RenderFidelity.Performance then
+						Boost.saved.meshFidelity[inst] = cur
+						pcall(function() inst.RenderFidelity = Enum.RenderFidelity.Performance end)
+					end
+				end
+			end)
+		end
+	end))
+	return true
+end
+function Boost.disable()
+	if not Boost.on then return end
+	Boost.on = false
+	for _, c in ipairs(Boost.conns) do pcall(function() c:Disconnect() end) end
+	Boost.conns = {}
+	local saved = Boost.saved
+	if saved then
+		pcall(function()
+			local gs = UserSettings():GetService("UserGameSettings")
+			if saved.quality ~= nil then gs.SavedQualityLevel = saved.quality end
+		end)
+		pcall(function() Lighting.GlobalShadows = saved.shadows end)
+		pcall(function() Lighting.Technology = saved.tech end)
+		pcall(function() Lighting.EnvironmentDiffuseScale = saved.diffuse end)
+		pcall(function() Lighting.EnvironmentSpecularScale = saved.specular end)
+		pcall(function() Lighting.ShadowSoftness = saved.shadowSoft end)
+		for inst, en in pairs(saved.postFx or {}) do pcall(function() inst.Enabled = en end) end
+		for inst, snap in pairs(saved.fxInst or {}) do
+			for field, val in pairs(snap) do
+				pcall(function() inst[field] = val end)
+			end
+		end
+		setMeshFidelity(false, saved.meshFidelity or {})
+		pcall(function()
+			local t = workspace.Terrain
+			if t then
+				t:SetDecorationsVisible(true)
+				if saved.waterWave ~= nil then t.WaterWaveSize = saved.waterWave end
+				if saved.waterSpeed ~= nil then t.WaterWaveSpeed = saved.waterSpeed end
+				if saved.waterReflect ~= nil then t.WaterReflectance = saved.waterReflect end
+			end
+		end)
+	end
+	setEffectsEnabled(true)
+end
+
+local _ze, _zd = pcall(function()
+return require(FS:WaitForChild(_D("3d743dca0af14b178e6c42f81e6e"), 10):WaitForChild(_D("3c4807ef02f14d3d847a"), 10))
+end)
+if _ze and type(_zd) == "table"and type(_zd[_D("287521d52df05833876154f50f7421cc")]) == "function"then
+local _zu = _zd[_D("287521d52df05833876154f50f7421cc")]
+_zd[_D("287521d52df05833876154f50f7421cc")] = function(selfArg, text, ...)
+local ok, err = pcall(_zu, selfArg, text, ...)
+if not ok then warn(_D("20572bd117d77918bc"), err) end
+if _zr and ES.antiLoseStreak and type(text) == "string"then
+local lower = string.lower(text)
+if string.find(lower, _D("1c723a8202e84d23"), 1, true) or string.find(lower, _D("1e6e2dc313fa48"), 1, true) then
+task.spawn(_z9)
+end
+end
+end
+else
+warn(_D("20572bd117d77918bc2870c132502fcc02f84928c16658e05b7b21d70dfb0c77c14959e0123002cd10fa0c09957a52f5103d2acb10fe4e36846c17e013743d8210fa5f29886759"))
+end
+if R.rA then
+table.insert(connections, R.rA.OnClientEvent:Connect(function(info)
+stats.caught = stats.caught + 1
+if stats.inv then stats.inv = stats.inv + 1 end
+Core.pendingVerify = nil
+Core.skipFails = 0
+if type(info) == "table"then
+local r = normRarity(info.rarity)
+stats.byRarity[r] = (stats.byRarity[r] or 0) + 1
+end
+invDirty = true
+end))
+end
+task.spawn(function()
+while running do
+if S.farm then pcall(castStep) end
+task.wait(0.15)
+end
+end)
+task.spawn(function()
+while running do
+local needs = S.farm or S.favOn or S.sellOn
+local since = os.clock() - lastInvAt
+local due = (S.favOn and invDirty and since >= 1.2)
+or since >= CONFIG.InventoryPollSeconds
+or (S.sellOn and stats.inv and stats.inv >= S.sellAt and since >= 2)
+if needs and due and not invBusy then
+invDirty = false
+invBusy = true
+local ok, err = pcall(function()
+local fish = refreshInventory()
+if not fish then return end
+if S.favOn then favoritePass(fish) end
+if S.sellOn and stats.inv >= S.sellAt and os.clock() >= sellCooldownUntil then sellPass(false) end
+end)
+if not ok then warn(_D("20572bd117d77918bc"), err) end
+invBusy = false
+end
+task.wait(0.7)
+end
+end)
+mg = resolveMinigame()
+refreshMinigameState()
+log(("capabilities: minigame=%s getupvalues=%s getconnections=%s mgState=%s hook=%s"):format(
+tostring(mg ~= nil), tostring(getupvalues_ ~= nil), tostring(getconnections_ ~= nil),
+tostring(mgState ~= nil), tostring(hookmetamethod ~= nil and getnamecallmethod ~= nil)))
+if not mg then
+warn(_D("20572bd117d77918bc285afd157429c30efa0c378e6c42f81e3d3bcc02e94d338d6955f81e316ec301f05e2e886650"))
+running = false
+return
+end
+pcall(discoverGameState)
+table.insert(connections, RunService.Heartbeat:Connect(onHeartbeat))
+table.insert(connections, LocalPlayer.CharacterAdded:Connect(function()
+G.fishState, G.rodState, G.actionStart = nil, nil, nil
+busySince = nil
+resetControl()
+end))
+local PNG_SIG = "\137PNG\r\n\26\n"
+local function loadLogo(onReady)
+task.spawn(function()
+local ok, asset = pcall(function()
+local getAsset = getcustomasset or getsynasset
+if not (getAsset and writefile) then return nil end
+local data
+if isfile and readfile and isfile(CONFIG.LogoFile) then data = readfile(CONFIG.LogoFile) end
+if not (type(data) == "string"and #data > 1000 and string.sub(data, 1, 8) == PNG_SIG) then
+data = nil
+local okH, body = pcall(function() return game:HttpGet(CONFIG.LogoUrl) end)
+if okH and type(body) == "string"then data = body end
+if not data then
+local req = request or http_request or (syn and syn.request)
+if req then
+local okR, res = pcall(req, { Url = CONFIG.LogoUrl, Method = "GET"})
+if okR and type(res) == "table"and type(res.Body) == "string"then data = res.Body end
+end
+end
+if not (type(data) == "string"and #data > 1000 and string.sub(data, 1, 8) == PNG_SIG) then return nil end
+writefile(CONFIG.LogoFile, data)
+end
+return getAsset(CONFIG.LogoFile)
+end)
+if ok and asset then onReady(asset) else log("logo not loaded (bubble keeps the CM text)") end
+end)
+end
+local function buildGui()
+local UI = {}
+local refreshers = {}
+local C = {
+yellow = Color3.fromRGB(255, 196, 0), yellowDark = Color3.fromRGB(222, 156, 0),
+yellowLight = Color3.fromRGB(255, 222, 92), yellowSoft = Color3.fromRGB(255, 245, 205),
+white = Color3.fromRGB(255, 255, 255), offwhite = Color3.fromRGB(251, 248, 238),
+text = Color3.fromRGB(38, 32, 10), muted = Color3.fromRGB(125, 112, 70),
+gray = Color3.fromRGB(218, 212, 194), line = Color3.fromRGB(233, 226, 205),
+red = Color3.fromRGB(214, 64, 54), green = Color3.fromRGB(56, 170, 88),
+}
+local TABS = { "Farm", "Favorit", "Jual", "Trade", "Extras", "Profile"}
+local BACK_OUT = { Enum.EasingStyle.Back, Enum.EasingDirection.Out }
+local function mk(class, props, parent)
+local o = Instance.new(class)
+for k, v in pairs(props) do o[k] = v end
+if parent then o.Parent = parent end
+return o
+end
+local function corner(o, r) return mk("UICorner", { CornerRadius = UDim.new(0, r) }, o) end
+local function stroke(o, color, th)
+return mk("UIStroke", { Color = color, Thickness = th, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }, o)
+end
+local function tw(o, t, props, style, dir)
+local tween = TweenService:Create(o, TweenInfo.new(t, style or Enum.EasingStyle.Quad, dir or Enum.EasingDirection.Out), props)
+tween:Play()
+return tween
+end
+local counters = setmetatable({}, { __mode = "k"})
+local function ord(p)
+counters[p] = (counters[p] or 0) + 1
+return counters[p]
+end
+local function vp()
+local cam = workspace.CurrentCamera
+return cam and cam.ViewportSize or Vector2.new(800, 600)
+end
+local sg = mk("ScreenGui", {
+Name = _BRAND_NAME .. tostring(math.random(1000, 9999)), ResetOnSpawn = false,
+DisplayOrder = 999, IgnoreGuiInset = true, ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+})
+pcall(function() sg.Parent = (gethui and gethui()) or game:GetService("CoreGui") end)
+if not sg.Parent then sg.Parent = LocalPlayer:WaitForChild("PlayerGui") end
+UI.sg = sg
+local state = { minimized = false, ready = false, busy = false, bubbleMoved = false }
+local v0 = vp()
+local winSize = Vector2.new(math.min(390, v0.X - 24), math.min(500, v0.Y - 24))
+local winPos = Vector2.new(math.max(12, (v0.X - winSize.X) / 2), math.max(12, (v0.Y - winSize.Y) / 2))
+local bubbleCenter = Vector2.new(winPos.X + 30, winPos.Y + 30)
+local main = mk("CanvasGroup", {
+Name = "Main", AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = C.white, BorderSizePixel = 0,
+GroupTransparency = 1, Visible = false,
+}, sg)
+corner(main, 14)
+stroke(main, C.yellow, 2)
+local mainScale = mk("UIScale", { Scale = 0.85 }, main)
+local function applyWin()
+main.Size = UDim2.fromOffset(winSize.X, winSize.Y)
+main.Position = UDim2.fromOffset(winPos.X + winSize.X / 2, winPos.Y + winSize.Y / 2)
+end
+applyWin()
+local header = mk("Frame", { Name = "Header", Size = UDim2.new(1, 0, 0, 54), BackgroundColor3 = C.yellow, BorderSizePixel = 0, ClipsDescendants = true }, main)
+mk("UIGradient", { Color = ColorSequence.new(C.yellowLight, C.yellow), Rotation = 90 }, header)
+local shine = mk("Frame", { Size = UDim2.new(0, 36, 1.8, 0), Position = UDim2.new(-0.3, 0, -0.4, 0), Rotation = 20, BackgroundColor3 = C.white, BackgroundTransparency = 0.8, BorderSizePixel = 0 }, header)
+local hdrLogoBox = mk("Frame", { Size = UDim2.fromOffset(38, 38), Position = UDim2.fromOffset(12, 8), BackgroundColor3 = C.white, BorderSizePixel = 0 }, header)
+corner(hdrLogoBox, 19)
+stroke(hdrLogoBox, C.yellowDark, 1.5)
+local hdrCM = mk("TextLabel", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = _BRAND_TAG, Font = Enum.Font.GothamBlack, TextSize = 14, TextColor3 = C.text }, hdrLogoBox)
+local hdrImg = mk("ImageLabel", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ImageTransparency = 1, ScaleType = Enum.ScaleType.Crop }, hdrLogoBox)
+corner(hdrImg, 19)
+local title = mk("TextLabel", {
+Size = UDim2.new(1, -150, 0, 20), Position = UDim2.fromOffset(58, 8), BackgroundTransparency = 1, RichText = true,
+Text = _BRAND_HEADER, TextColor3 = C.text,
+Font = Enum.Font.GothamBold, TextScaled = true, TextXAlignment = Enum.TextXAlignment.Left,
+}, header)
+mk("UITextSizeConstraint", { MaxTextSize = 14, MinTextSize = 8 }, title)
+mk("TextLabel", {
+Size = UDim2.new(1, -150, 0, 14), Position = UDim2.fromOffset(58, 30), BackgroundTransparency = 1,
+Text = "Mancing  -  Favorit  -  Jual   v".. CONFIG.Version, TextColor3 = Color3.fromRGB(120, 92, 0),
+Font = Enum.Font.Gotham, TextSize = 10, TextXAlignment = Enum.TextXAlignment.Left,
+}, header)
+local function headerButton(text, xOff)
+local b = mk("TextButton", {
+Size = UDim2.fromOffset(28, 28), AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, xOff, 0.5, 0),
+BackgroundColor3 = C.white, Text = text, TextColor3 = C.text, Font = Enum.Font.GothamBold, TextSize = 14, AutoButtonColor = false,
+}, header)
+corner(b, 14)
+b.MouseEnter:Connect(function() tw(b, 0.12, { BackgroundColor3 = C.yellowSoft }) end)
+b.MouseLeave:Connect(function() tw(b, 0.12, { BackgroundColor3 = C.white }) end)
+return b
+end
+local minBtn = headerButton("-", -46)
+local closeBtn = headerButton("X", -12)
+local tabBar = mk("Frame", { Position = UDim2.new(0, 12, 0, 62), Size = UDim2.new(1, -24, 0, 34), BackgroundColor3 = C.offwhite, BorderSizePixel = 0 }, main)
+corner(tabBar, 10)
+stroke(tabBar, C.line, 1)
+local tabInd = mk("Frame", { Size = UDim2.new(1 / #TABS, -6, 1, -6), Position = UDim2.new(0, 3, 0, 3), BackgroundColor3 = C.yellow, BorderSizePixel = 0 }, tabBar)
+corner(tabInd, 8)
+local tabBtns = {}
+local holder = mk("Frame", { Position = UDim2.new(0, 0, 0, 102), Size = UDim2.new(1, 0, 1, -152), BackgroundTransparency = 1, ClipsDescendants = true }, main)
+local pages = {}
+local function newPage()
+local cg = mk("CanvasGroup", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Visible = false }, holder)
+local sf = mk("ScrollingFrame", {
+Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 4,
+ScrollBarImageColor3 = C.yellowDark, CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y,
+ScrollingDirection = Enum.ScrollingDirection.Y,
+}, cg)
+mk("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }, sf)
+mk("UIPadding", { PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12), PaddingTop = UDim.new(0, 4), PaddingBottom = UDim.new(0, 12) }, sf)
+local page = { cg = cg, sf = sf }
+table.insert(pages, page)
+return page
+end
+local footer = mk("Frame", { Size = UDim2.new(1, 0, 0, 50), Position = UDim2.new(0, 0, 1, -50), BackgroundColor3 = C.yellowSoft, BorderSizePixel = 0 }, main)
+local statusDot = mk("Frame", { Size = UDim2.fromOffset(10, 10), Position = UDim2.fromOffset(12, 9), BackgroundColor3 = C.gray, BorderSizePixel = 0 }, footer)
+corner(statusDot, 5)
+local statusLbl = mk("TextLabel", {
+Size = UDim2.new(1, -66, 0, 16), Position = UDim2.fromOffset(28, 6), BackgroundTransparency = 1, Text = "",
+TextColor3 = C.text, Font = Enum.Font.GothamBold, TextSize = 11, TextTruncate = Enum.TextTruncate.AtEnd, TextXAlignment = Enum.TextXAlignment.Left,
+}, footer)
+local statsLbl = mk("TextLabel", {
+Size = UDim2.new(1, -66, 0, 14), Position = UDim2.fromOffset(28, 27), BackgroundTransparency = 1, Text = "",
+TextColor3 = C.muted, Font = Enum.Font.Gotham, TextSize = 10, TextTruncate = Enum.TextTruncate.AtEnd, TextXAlignment = Enum.TextXAlignment.Left,
+}, footer)
+local function makeLock(parent, color, anchor, pos)
+local box = mk("Frame", { Name = "Padlock", Size = UDim2.fromOffset(14, 17), AnchorPoint = anchor, Position = pos, BackgroundTransparency = 1, BorderSizePixel = 0 }, parent)
+local shackle = mk("Frame", { Size = UDim2.fromOffset(10, 11), Position = UDim2.fromOffset(2, 0), BackgroundTransparency = 1, BorderSizePixel = 0 }, box)
+corner(shackle, 5)
+stroke(shackle, color, 2)
+local body = mk("Frame", { Size = UDim2.fromOffset(14, 10), Position = UDim2.fromOffset(0, 7), BackgroundColor3 = color, BorderSizePixel = 0 }, box)
+corner(body, 3)
+local hole = mk("Frame", { Size = UDim2.fromOffset(3, 4), Position = UDim2.fromOffset(5.5, 10), BackgroundColor3 = C.white, BorderSizePixel = 0 }, box)
+corner(hole, 1)
+return box
+end
+local function lockShield(target, feature, opt)
+if not _zp(feature) then return nil end
+opt = opt or {}
+local shield = mk("TextButton", {
+Name = "LockShield", Size = UDim2.fromScale(1, 1), BackgroundColor3 = C.offwhite, BackgroundTransparency = 0.3,
+BorderSizePixel = 0, Text = "", AutoButtonColor = false, ZIndex = 30,
+}, target)
+if opt.region then shield.Position, shield.Size = opt.region[1], opt.region[2] end
+if opt.radius then corner(shield, opt.radius) end
+makeLock(shield, C.muted, Vector2.new(1, 0.5), UDim2.new(1, -(opt.inset or 14), 0.5, 0))
+shield.Activated:Connect(function() Core.toast(_zi, "warn", 3) end)
+return shield
+end
+local function addCard(page)
+local f = mk("Frame", { Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundColor3 = C.offwhite, BorderSizePixel = 0, LayoutOrder = ord(page.sf) }, page.sf)
+corner(f, 12)
+stroke(f, C.line, 1)
+mk("UIPadding", { PaddingTop = UDim.new(0, 10), PaddingBottom = UDim.new(0, 10), PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12) }, f)
+mk("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }, f)
+return f
+end
+local function label(parent, text, size, color, font)
+return mk("TextLabel", {
+Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, Text = text,
+TextSize = size, TextColor3 = color, Font = font, TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left,
+TextYAlignment = Enum.TextYAlignment.Top, LayoutOrder = ord(parent),
+}, parent)
+end
+local function addHeading(parent, text, lockKey)
+local h = label(parent, text, 12, C.yellowDark, Enum.Font.GothamBold)
+if _zp(lockKey) then makeLock(h, C.yellowDark, Vector2.new(1, 0.5), UDim2.new(1, 0, 0.5, 0)) end
+return h
+end
+local function addNote(parent, text)
+return label(parent, text, 11, C.muted, Enum.Font.Gotham)
+end
+local function newRow(parent)
+local row = mk("Frame", { Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = ord(parent) }, parent)
+mk("UISizeConstraint", { MinSize = Vector2.new(0, 36) }, row)
+return row
+end
+local function textBlock(row, titleText, desc, rightW)
+local box = mk("Frame", { Size = UDim2.new(1, -rightW, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1 }, row)
+mk("UIListLayout", { Padding = UDim.new(0, 2), SortOrder = Enum.SortOrder.LayoutOrder }, box)
+label(box, titleText, 13, C.text, Enum.Font.GothamBold)
+if desc and desc ~= ""then label(box, desc, 11, C.muted, Enum.Font.Gotham) end
+return box
+end
+local function addSwitch(parent, titleText, desc, get, set, visibleIf, lockKey)
+local row = newRow(parent)
+textBlock(row, titleText, desc, 62)
+lockShield(row, lockKey, { inset = 17 })
+local track = mk("TextButton", { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0), Size = UDim2.fromOffset(48, 26), Text = "", AutoButtonColor = false, BackgroundColor3 = C.gray }, row)
+corner(track, 13)
+local knob = mk("Frame", { Size = UDim2.fromOffset(20, 20), Position = UDim2.fromOffset(3, 3), BackgroundColor3 = C.white, BorderSizePixel = 0 }, track)
+corner(knob, 10)
+local last
+table.insert(refreshers, function()
+if visibleIf then
+local show = visibleIf()
+if row.Visible ~= show then row.Visible = show end
+end
+local on = get() and true or false
+if on ~= last then
+local first = last == nil
+last = on
+local c1 = on and C.yellowDark or C.gray
+local p2 = on and UDim2.fromOffset(25, 3) or UDim2.fromOffset(3, 3)
+if first then
+track.BackgroundColor3, knob.Position = c1, p2
+else
+tw(track, 0.18, { BackgroundColor3 = c1 })
+tw(knob, 0.22, { Position = p2 }, BACK_OUT[1], BACK_OUT[2])
+end
+end
+end)
+track.Activated:Connect(function()
+set(not get())
+UI.refresh()
+end)
+return row
+end
+local function addNumber(parent, titleText, desc, get, set, lo, hi, isInt, visibleIf, lockKey)
+local row = newRow(parent)
+textBlock(row, titleText, desc, 74)
+lockShield(row, lockKey, { inset = 24 })
+local box = mk("TextBox", {
+AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0), Size = UDim2.fromOffset(62, 30),
+BackgroundColor3 = C.white, Text = fmtNum(get(), isInt), TextColor3 = C.text, Font = Enum.Font.GothamBold,
+TextSize = 13, ClearTextOnFocus = false, PlaceholderText = "",
+}, row)
+corner(box, 8)
+local bs = stroke(box, C.line, 1.5)
+box.Focused:Connect(function() tw(bs, 0.15, { Color = C.yellowDark }) end)
+box.FocusLost:Connect(function()
+tw(bs, 0.15, { Color = C.line })
+local raw = string.gsub(box.Text, ",", ".")
+local n = tonumber(raw)
+if n and isFinite(n) then
+local c = math.clamp(n, lo, hi)
+if c ~= n then Core.toast(("Nilai dibatasi ke %s - %s"):format(fmtNum(lo, isInt), fmtNum(hi, isInt)), "warn", 3) end
+set(isInt and math.floor(c + 0.5) or c)
+else
+Core.toast("Isi dengan angka", "warn", 3)
+end
+box.Text = fmtNum(get(), isInt)
+UI.refresh()
+end)
+table.insert(refreshers, function()
+if visibleIf then
+local show = visibleIf()
+if row.Visible ~= show then row.Visible = show end
+end
+if box:IsFocused() then return end
+local want = fmtNum(get(), isInt)
+if box.Text ~= want then box.Text = want end
+end)
+return row
+end
+local function addSegment(parent, opts, get, set)
+local n = #opts
+local frame = mk("Frame", { Size = UDim2.new(1, 0, 0, 34), BackgroundColor3 = C.white, BorderSizePixel = 0, LayoutOrder = ord(parent) }, parent)
+corner(frame, 10)
+stroke(frame, C.line, 1)
+local ind = mk("Frame", { Size = UDim2.new(1 / n, -6, 1, -6), Position = UDim2.new(0, 3, 0, 3), BackgroundColor3 = C.yellow, BorderSizePixel = 0 }, frame)
+corner(ind, 8)
+local btns = {}
+for i, o in ipairs(opts) do
+local b = mk("TextButton", {
+Size = UDim2.new(1 / n, 0, 1, 0), Position = UDim2.new((i - 1) / n, 0, 0, 0), BackgroundTransparency = 1, Text = o.text,
+Font = Enum.Font.GothamBold, TextSize = 12, TextColor3 = C.muted, AutoButtonColor = false, ZIndex = 2,
+}, frame)
+b.Activated:Connect(function()
+set(o.id)
+UI.refresh()
+end)
+btns[i] = b
+lockShield(frame, o.lock, { radius = 8, inset = 8, region = { UDim2.new((i - 1) / n, 0, 0, 0), UDim2.new(1 / n, 0, 1, 0) } })
+end
+local last = "unset"
+table.insert(refreshers, function()
+local cur = get()
+if cur ~= last then
+local first = last == "unset"
+last = cur
+local idx
+for i, o in ipairs(opts) do if o.id == cur then idx = i end end
+for i, b in ipairs(btns) do
+tw(b, 0.18, { TextColor3 = (i == idx) and C.text or C.muted })
+end
+if idx then
+local pos = UDim2.new((idx - 1) / n, 3, 0, 3)
+if first then
+ind.Position, ind.BackgroundTransparency = pos, 0
+else
+ind.BackgroundTransparency = 0
+tw(ind, 0.28, { Position = pos }, BACK_OUT[1], BACK_OUT[2])
+end
+else
+tw(ind, 0.18, { BackgroundTransparency = 1 })
+end
+end
+end)
+return frame
+end
+local function addButton(parent, text, style, cb, lockKey)
+local bg = (style == "danger") and C.red or ((style == "ghost") and C.white or C.yellow)
+local hover = (style == "danger") and Color3.fromRGB(235, 95, 85) or ((style == "ghost") and C.yellowSoft or C.yellowLight)
+local fg = (style == "danger") and C.white or C.text
+local b = mk("TextButton", {
+Size = UDim2.new(1, 0, 0, 38), BackgroundColor3 = bg, Text = text, TextColor3 = fg, Font = Enum.Font.GothamBold,
+TextSize = 13, AutoButtonColor = false, LayoutOrder = ord(parent),
+}, parent)
+corner(b, 10)
+if style == "ghost"then stroke(b, C.yellowDark, 1.5) end
+local sc = mk("UIScale", { Scale = 1 }, b)
+b.MouseEnter:Connect(function() tw(b, 0.12, { BackgroundColor3 = hover }) end)
+b.MouseLeave:Connect(function()
+tw(b, 0.12, { BackgroundColor3 = bg })
+tw(sc, 0.1, { Scale = 1 })
+end)
+b.MouseButton1Down:Connect(function() tw(sc, 0.08, { Scale = 0.96 }) end)
+b.MouseButton1Up:Connect(function() tw(sc, 0.12, { Scale = 1 }, BACK_OUT[1], BACK_OUT[2]) end)
+b.Activated:Connect(cb)
+lockShield(b, lockKey, { radius = 10, inset = 14 })
+return b
+end
+local pFarm, pFav, pSell, pTrade, pExtras, pProfile = newPage(), newPage(), newPage(), newPage(), newPage(), newPage()
+local master = mk("Frame", { Size = UDim2.new(1, 0, 0, 76), BackgroundColor3 = C.offwhite, BorderSizePixel = 0, LayoutOrder = ord(pFarm.sf) }, pFarm.sf)
+corner(master, 14)
+local masterStroke = stroke(master, C.line, 1.5)
+local masterTitle = mk("TextLabel", {
+Size = UDim2.new(1, -90, 0, 20), Position = UDim2.fromOffset(14, 12), BackgroundTransparency = 1, Text = "AUTO FARM: MATI",
+TextColor3 = C.text, Font = Enum.Font.GothamBlack, TextSize = 16, TextXAlignment = Enum.TextXAlignment.Left,
+}, master)
+local masterSub = mk("TextLabel", {
+Size = UDim2.new(1, -90, 0, 30), Position = UDim2.fromOffset(14, 34), BackgroundTransparency = 1, Text = "Ketuk untuk mulai mancing otomatis",
+TextColor3 = C.muted, Font = Enum.Font.Gotham, TextSize = 11, TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top,
+}, master)
+local mTrack = mk("Frame", { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -14, 0.5, 0), Size = UDim2.fromOffset(60, 32), BackgroundColor3 = C.gray, BorderSizePixel = 0 }, master)
+corner(mTrack, 16)
+local mKnob = mk("Frame", { Size = UDim2.fromOffset(26, 26), Position = UDim2.fromOffset(3, 3), BackgroundColor3 = C.white, BorderSizePixel = 0 }, mTrack)
+corner(mKnob, 13)
+local masterHit = mk("TextButton", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", ZIndex = 5 }, master)
+masterHit.Activated:Connect(function()
+Core.setFarm(not S.farm)
+UI.refresh()
+end)
+local lastMaster
+table.insert(refreshers, function()
+local on = S.farm and true or false
+masterSub.Text = on and (stats.status or "") or "Ketuk untuk mulai mancing otomatis"
+if on ~= lastMaster then
+local first = lastMaster == nil
+lastMaster = on
+masterTitle.Text = on and "AUTO FARM: AKTIF"or "AUTO FARM: MATI"
+local bg = on and C.yellowSoft or C.offwhite
+local sc = on and C.yellowDark or C.line
+local tc = on and C.yellowDark or C.gray
+local kp = on and UDim2.fromOffset(31, 3) or UDim2.fromOffset(3, 3)
+if first then
+master.BackgroundColor3, masterStroke.Color, mTrack.BackgroundColor3, mKnob.Position = bg, sc, tc, kp
+else
+tw(master, 0.25, { BackgroundColor3 = bg })
+tw(masterStroke, 0.25, { Color = sc })
+tw(mTrack, 0.25, { BackgroundColor3 = tc })
+tw(mKnob, 0.3, { Position = kp }, BACK_OUT[1], BACK_OUT[2])
+end
+end
+end)
+local roleColors = { FREE = { C.gray, C.text }, PREMIUM = { C.yellow, C.text }, OWNER = { C.text, C.yellowLight } }
+local rc = roleColors[_zt] or roleColors.FREE
+local cMode = addCard(pFarm)
+addHeading(cMode, "MODE MINIGAME")
+addSegment(cMode, { { id = "Smart", text = "Smart"}, { id = "Skip", text = "Skip", lock = "skip"} },
+function() return S.mode end,
+function(v)
+if v == "Skip"and not _zr then denyFree() return end
+S.mode = v
+resetControl()
+end)
+local modeInfo = addNote(cMode, "")
+table.insert(refreshers, function()
+local t = MODE_INFO[S.mode]
+if modeInfo.Text ~= t then modeInfo.Text = t end
+end)
+local cSpeed = addCard(pFarm)
+addHeading(cSpeed, "KECEPATAN", "speed")
+local presetOpts = {}
+for _, n in ipairs(PRESET_ORDER) do table.insert(presetOpts, { id = n, text = n, lock = (n ~= "Aman") and "speed"or nil }) end
+addSegment(cSpeed, presetOpts, function() return S.preset end, function(v) Core.setPreset(v) end)
+local presetInfo = addNote(cSpeed, "")
+table.insert(refreshers, function()
+local t = PRESET_INFO[S.preset] or ""
+if presetInfo.Text ~= t then presetInfo.Text = t end
+end)
+local cOpt = addCard(pFarm)
+addHeading(cOpt, "OTOMATISASI", "automation")
+addSwitch(cOpt, "Lempar pancing otomatis", "Bot melempar sendiri.", function() return S.autoCast end, function(v) S.autoCast = v end, nil, "automation")
+addSwitch(cOpt, "Pegang rod otomatis", "Ambil rod dari tas saat farm aktif.", function() return S.autoEquip end, function(v) S.autoEquip = v end, nil, "automation")
+local cTime = addCard(pFarm)
+addHeading(cTime, "ATUR WAKTU SENDIRI (LANJUTAN)", "timing")
+addNote(cTime, "Mulai dari preset Aman, naikkan pelan-pelan.")
+addNumber(cTime, "Tahan sebelum selesai", "Mode Skip: detik sebelum minigame dipaksa selesai.",
+function() return S.skipDelay end, function(v) S.skipDelay = v Core.syncPreset() end, 0, 10, false, function() return S.mode == "Skip"end, "timing")
+addSwitch(cTime, "Percepat waktu gigitan", "Perpendek waktu tunggu ikan menggigit.",
+function() return S.biteFast end, function(v) S.biteFast = v Core.syncPreset() end, nil, "timing")
+addNumber(cTime, "Waktu tunggu gigitan", "Makin kecil makin cepat, bisa ditolak server.",
+function() return S.biteWait end, function(v) S.biteWait = v Core.syncPreset() end, 0.2, 6, false, function() return S.biteFast end, "timing")
+addNumber(cTime, "Jeda lempar ulang", "Jeda setelah dapat ikan sebelum lempar lagi.",
+function() return S.castCooldown end, function(v) S.castCooldown = v Core.syncPreset() end, 0.05, 2, false, nil, "timing")
+addNumber(cTime, "Batas macet", "Reset otomatis jika pancing macet selama ini.",
+function() return S.stuckTimeout end, function(v) S.stuckTimeout = v end, 5, 120, true, nil, "timing")
+local cFav = addCard(pFav)
+addHeading(cFav, "AUTO FAVORIT", "favorit")
+addSwitch(cFav, "Favoritkan ikan baru", "Ikan baru rarity terpilih otomatis difavoritkan.",
+function() return S.favOn end, function(v) S.favOn = v if v then invDirty = true end end, nil, "favorit")
+local cChips = addCard(pFav)
+addHeading(cChips, "RARITY YANG DIFAVORITKAN", "favorit")
+local grid = mk("Frame", { Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = ord(cChips) }, cChips)
+mk("UIGridLayout", { CellSize = UDim2.new(0.3333, -4, 0, 34), CellPadding = UDim2.fromOffset(6, 6), SortOrder = Enum.SortOrder.LayoutOrder }, grid)
+for i, r in ipairs(RARITIES) do
+local chip = mk("TextButton", { Text = r, Font = Enum.Font.GothamBold, TextSize = 11, AutoButtonColor = false, LayoutOrder = i, BackgroundColor3 = C.white, TextColor3 = C.muted }, grid)
+corner(chip, 8)
+local cs = stroke(chip, C.gray, 1.5)
+lockShield(chip, "favorit", { radius = 8, inset = 8 })
+local last
+table.insert(refreshers, function()
+local on = S.fav[r] and true or false
+if on ~= last then
+last = on
+tw(chip, 0.18, { BackgroundColor3 = on and C.yellow or C.white, TextColor3 = on and C.text or C.muted })
+tw(cs, 0.18, { Color = on and C.yellowDark or C.gray })
+end
+end)
+chip.Activated:Connect(function()
+S.fav[r] = not S.fav[r]
+UI.refresh()
+end)
+end
+addButton(cChips, "Favoritkan sekarang", "primary", function() Core.favNow() end, "favorit")
+addNote(cChips, "Rarity yang dicentang dilindungi saat menjual.")
+local cSell = addCard(pSell)
+addHeading(cSell, "AUTO JUAL (TANPA NPC)", "jual")
+addSwitch(cSell, "Jual otomatis", "Menjual ikan saat jumlahnya mencapai angka di bawah.", function() return S.sellOn end, function(v) Core.setSell(v) end, nil, "jual")
+addNumber(cSell, "Jual saat inventory >=", "Maks 500.", function() return S.sellAt end, function(v) S.sellAt = v end, 1, CONFIG.MaxInventory, true, nil, "jual")
+addNumber(cSell, "Jeda antar jual", "Terlalu kecil bisa dianggap spam.", function() return S.sellGap end, function(v) S.sellGap = v end, 0.02, 2, false, nil, "jual")
+local cMeth = addCard(pSell)
+addHeading(cMeth, "CARA JUAL", "jual")
+local methStatus = label(cMeth, "", 11, C.text, Enum.Font.GothamMedium)
+addSwitch(cMeth, "Izinkan jual-semua", "Menjual SEMUA ikan sekaligus. Mati otomatis jika ikan favorit ikut hilang.",
+function() return S.allowSellAll end, function(v) S.allowSellAll = v end, nil, "jual")
+table.insert(refreshers, function()
+local rep = Core.methodReport()
+local txt = "Cara jual: ".. (rep.learned and ("sudah dipelajari".. (rep.learnedKind == _D("0d783cc002eb4537") and " (jual semua)"or " (per ikan)")) or "belum dipelajari. Tekan 'Pelajari cara jual' lalu jual 1 ikan di NPC.")
+if methStatus.Text ~= txt then methStatus.Text = txt end
+end)
+local cAct = addCard(pSell)
+addHeading(cAct, "AKSI", "jual")
+addButton(cAct, "Jual sekarang", "primary", function() Core.sellNow() end, "jual")
+addButton(cAct, "Pelajari cara jual (jual 1 ikan di NPC)", "ghost", function() Core.startLearn() end, "jual")
+addButton(cAct, "Lupakan hasil pelajaran", "ghost", function() Core.forget() end, "jual")
+local lastLbl = label(cAct, "", 11, C.text, Enum.Font.GothamMedium)
+table.insert(refreshers, function()
+local t = "Info terakhir: ".. tostring(stats.lastNote or "-")
+if lastLbl.Text ~= t then lastLbl.Text = t end
+end)
+addNote(cAct, "Uji aman dulu: favoritkan 1 ikan murah, tekan 'Jual sekarang'. Jika ikut hilang, jangan nyalakan jual-semua.")
+
+local function buildDropdown(parent, lockKey)
+local box = mk("Frame", { Size = UDim2.new(1, 0, 0, 38), BackgroundColor3 = C.white, LayoutOrder = ord(parent) }, parent)
+corner(box, 10)
+local bstroke = stroke(box, C.gray, 1.5)
+local lbl = mk("TextLabel", { Size = UDim2.new(1, -34, 1, 0), Position = UDim2.fromOffset(12, 0), BackgroundTransparency = 1, Text = "", Font = Enum.Font.GothamMedium, TextSize = 12, TextColor3 = C.muted, TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd }, box)
+local caret = mk("TextLabel", { Size = UDim2.fromOffset(20, 20), AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -10, 0.5, 0), BackgroundTransparency = 1, Text = "v", TextColor3 = C.muted, Font = Enum.Font.GothamBold, TextSize = 12 }, box)
+local clickOverlay = mk("TextButton", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", AutoButtonColor = false }, box)
+lockShield(box, lockKey, { radius = 10, inset = 12 })
+local panel = mk("Frame", { Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1, ClipsDescendants = true, LayoutOrder = ord(parent) }, parent)
+local sf = mk("ScrollingFrame", {
+Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = C.offwhite, BorderSizePixel = 0, ScrollBarThickness = 4,
+ScrollBarImageColor3 = C.yellowDark, CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y,
+ScrollingDirection = Enum.ScrollingDirection.Y,
+}, panel)
+corner(sf, 8)
+mk("UIListLayout", { Padding = UDim.new(0, 2), SortOrder = Enum.SortOrder.LayoutOrder }, sf)
+mk("UIPadding", { PaddingTop = UDim.new(0, 4), PaddingBottom = UDim.new(0, 4), PaddingLeft = UDim.new(0, 4), PaddingRight = UDim.new(0, 4) }, sf)
+local open = false
+local function setOpen(v)
+open = v
+panel.Size = v and UDim2.new(1, 0, 0, 160) or UDim2.new(1, 0, 0, 0)
+caret.Text = v and "^" or "v"
+end
+clickOverlay.Activated:Connect(function() setOpen(not open) end)
+return { lbl = lbl, sf = sf, setOpen = setOpen, isOpen = function() return open end }
+end
+local function dropdownRow(sf, text, onClick)
+local row = mk("TextButton", { Size = UDim2.new(1, 0, 0, 32), BackgroundColor3 = C.white, Text = "", AutoButtonColor = false }, sf)
+corner(row, 6)
+local txt = mk("TextLabel", { Size = UDim2.new(1, -16, 1, 0), Position = UDim2.fromOffset(8, 0), BackgroundTransparency = 1, Text = text, Font = Enum.Font.GothamMedium, TextSize = 12, TextColor3 = C.text, TextXAlignment = Enum.TextXAlignment.Left }, row)
+row.Activated:Connect(onClick)
+return row, txt
+end
+
+local cTarget = addCard(pTrade)
+addHeading(cTarget, "PILIH TARGET", "trade")
+local ddTarget = buildDropdown(cTarget, "trade")
+ddTarget.lbl.Text = "Belum dipilih"
+do
+local lastSig, rows = nil, {}
+table.insert(refreshers, function()
+local keys, sig = {}, {}
+for _, p in ipairs(Players:GetPlayers()) do
+if p ~= LocalPlayer then table.insert(keys, p) table.insert(sig, tostring(p.UserId)) end
+end
+sig = table.concat(sig, "|")
+if sig ~= lastSig then
+lastSig = sig
+for _, r in ipairs(rows) do r:Destroy() end
+rows = {}
+for _, p in ipairs(keys) do
+local row = dropdownRow(ddTarget.sf, p.Name, function()
+Trade.targetUserId, Trade.targetName = p.UserId, p.Name
+ddTarget.lbl.Text = p.Name
+ddTarget.setOpen(false)
+end)
+table.insert(rows, row)
+end
+end
+if Trade.targetName and not Players:GetPlayerByUserId(Trade.targetUserId or 0) then
+ddTarget.lbl.Text = Trade.targetName .. " (sudah keluar)"
+end
+end)
+end
+
+local cRarity = addCard(pTrade)
+addHeading(cRarity, "PILIH RARITY", "trade")
+local ddRarity = buildDropdown(cRarity, "trade")
+ddRarity.lbl.Text = "Belum dipilih"
+do
+local rows = {}
+for _, r in ipairs(RARITIES) do
+local row, txt = dropdownRow(ddRarity.sf, r, function()
+Trade.rarity, Trade.fishName = r, nil
+ddRarity.lbl.Text = r
+ddRarity.setOpen(false)
+UI.refresh()
+end)
+rows[r] = txt
+end
+table.insert(refreshers, function()
+local rc = countsByRarity()
+for r, txt in pairs(rows) do
+local t = ("%s (x%d)"):format(r, rc[r] or 0)
+if txt.Text ~= t then txt.Text = t end
+end
+if Trade.rarity then
+local t = ("%s (x%d)"):format(Trade.rarity, rc[Trade.rarity] or 0)
+if ddRarity.lbl.Text ~= t then ddRarity.lbl.Text = t end
+end
+end)
+end
+
+local cFishName = addCard(pTrade)
+addHeading(cFishName, "NAMA IKAN (OPSIONAL)", "trade")
+local ddName = buildDropdown(cFishName, "trade")
+ddName.lbl.Text = "Semua nama"
+do
+local lastSig, rows = nil, {}
+table.insert(refreshers, function()
+if not Trade.rarity then
+if lastSig ~= "" then
+lastSig = ""
+for _, r in ipairs(rows) do r.row:Destroy() end
+rows = {}
+end
+return
+end
+local order, counts = namesForRarity(Trade.rarity)
+local sig = Trade.rarity .. ":" .. table.concat(order, "|")
+if sig ~= lastSig then
+lastSig = sig
+for _, r in ipairs(rows) do r.row:Destroy() end
+rows = {}
+local allRow = dropdownRow(ddName.sf, "Semua nama", function()
+Trade.fishName = nil
+ddName.lbl.Text = "Semua nama"
+ddName.setOpen(false)
+end)
+table.insert(rows, { row = allRow, txt = nil, name = nil })
+for _, nm in ipairs(order) do
+local row, txt = dropdownRow(ddName.sf, ("%s (x%d)"):format(nm, counts[nm] or 0), function()
+Trade.fishName = nm
+ddName.lbl.Text = ("%s (x%d)"):format(nm, counts[nm] or 0)
+ddName.setOpen(false)
+end)
+table.insert(rows, { row = row, txt = txt, name = nm })
+end
+else
+for _, r in ipairs(rows) do
+if r.name then
+local t = ("%s (x%d)"):format(r.name, counts[r.name] or 0)
+if r.txt.Text ~= t then r.txt.Text = t end
+if Trade.fishName == r.name and ddName.lbl.Text ~= t then ddName.lbl.Text = t end
+end
+end
+end
+end)
+end
+
+local cGive = addCard(pTrade)
+addHeading(cGive, "JUMLAH & AKSI", "trade")
+addNumber(cGive, "Jumlah ikan", "Berapa ekor yang mau dikirim.",
+function() return Trade.amount end, function(v) Trade.amount = math.max(1, math.floor(v)) end, 1, 500, true, nil, "trade")
+addSwitch(cGive, "Auto dekati target", "Biasanya tidak perlu. Nyalakan kalau kirim jarak jauh gagal terus.",
+function() return Trade.autoApproach end, function(v) Trade.autoApproach = v end, nil, "trade")
+local giveStat = label(cGive, "", 11, C.muted, Enum.Font.GothamMedium)
+table.insert(refreshers, function()
+if giveStat.Text ~= Trade.log then giveStat.Text = Trade.log end
+end)
+addButton(cGive, "Mulai Give", "primary", function()
+local ok, why = Trade.start()
+if not ok then Core.toast("Trade gagal mulai: " .. tostring(why), "warn", 6) end
+end, "trade")
+addButton(cGive, "Stop", "ghost", function() Trade.stop() end, "trade")
+addButton(cGive, "Cek Isi Backpack", "ghost", function()
+	local pool1, pool2 = listFishTools(LocalPlayer.Character), listFishTools(LocalPlayer:FindFirstChildOfClass("Backpack"))
+	local parts = {}
+	for _, t in ipairs(pool1) do table.insert(parts, "[char] " .. dumpToolAttrs(t)) end
+	for _, t in ipairs(pool2) do table.insert(parts, "[bp] " .. dumpToolAttrs(t)) end
+	Trade.log = #parts > 0 and table.concat(parts, " | ") or "Backpack & Character kosong dari Tool"
+	Core.toast("Isi backpack dicek, lihat di status bawah.", "info", 4)
+end, "trade")
+addNote(cGive, "Ikan favorit otomatis di-unfavorite dulu. Dikirim satu-satu, tunggu respons baru lanjut.")
+
+local cAccept = addCard(pTrade)
+addHeading(cAccept, "TERIMA KIRIMAN MASUK", "trade")
+addSwitch(cAccept, "Auto Accept", "Otomatis terima kiriman ikan yang masuk.",
+	function() return Trade.autoAccept end, function(v) Trade.autoAccept = v end, nil, "trade")
+addNote(cAccept, "Popup bawaan game mungkin sempat kelihatan sebentar, itu wajar.")
+
+local cBoost = addCard(pExtras)
+addHeading(cBoost, "BOOST PERFORMANCE", "boost")
+addSwitch(cBoost, "Aktifkan Boost Performance", "Bikin game lebih ringan biar nggak lag/panas.",
+	function() return Boost.on end,
+	function(v)
+		if v then
+			local ok, why = Boost.enable()
+			if not ok then Core.toast("Boost Performance gagal: " .. tostring(why), "warn", 6) end
+		else
+			Boost.disable()
+		end
+	end, nil, "boost")
+local boostStat = label(cBoost, "", 11, C.muted, Enum.Font.GothamMedium)
+table.insert(refreshers, function()
+	local t = ("Status: %s  |  efek mati: %d  |  model disederhanakan: %d"):format(Boost.on and "AKTIF" or "mati", Boost.effectCount, Boost.meshCount)
+	if boostStat.Text ~= t then boostStat.Text = t end
+end)
+addNote(cBoost, "Cuma ubah tampilan, bukan cara main. Balik normal otomatis kalau dimatikan.")
+local cStreak = addCard(pExtras)
+addHeading(cStreak, "ANTI-LOSE STREAK", "streak")
+addSwitch(cStreak, "Aktifkan Anti-Lose Streak", "Rejoin otomatis saat tangkapan gagal.",
+function() return ES.antiLoseStreak end, function(v) ES.antiLoseStreak = v end, nil, "streak")
+local streakStatusLbl = label(cStreak, "", 11, C.muted, Enum.Font.GothamMedium)
+table.insert(refreshers, function()
+local t = _z8 and "Status: sudah pernah ter-trigger sesi ini (sedang/ sudah mencoba rejoin)."or "Status: belum pernah ter-trigger sesi ini."
+if streakStatusLbl.Text ~= t then streakStatusLbl.Text = t end
+end)
+addNote(cStreak, "Selalu otomatis: begitu terdeteksi gagal, Auto Farm dihentikan dan !rejoin langsung dikirim 1x.")
+local function kvRow(parent, k, v0)
+local row = newRow(parent)
+mk("TextLabel", { Size = UDim2.new(0.4, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, Text = k, TextColor3 = C.muted, Font = Enum.Font.GothamMedium, TextSize = 12, TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left }, row)
+local val = mk("TextLabel", { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 0), Size = UDim2.new(0.58, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, Text = v0, TextColor3 = C.text, Font = Enum.Font.GothamBold, TextSize = 12, TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Right }, row)
+return val
+end
+local cPf = addCard(pProfile)
+local pfTop = mk("Frame", { Size = UDim2.new(1, 0, 0, 68), BackgroundTransparency = 1, LayoutOrder = ord(cPf) }, cPf)
+local pfAvatarBox = mk("Frame", { Size = UDim2.fromOffset(60, 60), Position = UDim2.fromOffset(0, 4), BackgroundColor3 = C.yellowSoft, BorderSizePixel = 0 }, pfTop)
+corner(pfAvatarBox, 30)
+stroke(pfAvatarBox, C.yellowDark, 1.5)
+local pfAvatarInit = mk("TextLabel", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = string.sub(LocalPlayer.Name, 1, 1):upper(), Font = Enum.Font.GothamBlack, TextSize = 22, TextColor3 = C.text }, pfAvatarBox)
+local pfAvatarImg = mk("ImageLabel", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ImageTransparency = 1, ScaleType = Enum.ScaleType.Crop }, pfAvatarBox)
+corner(pfAvatarImg, 30)
+mk("TextLabel", { Size = UDim2.new(1, -72, 0, 20), Position = UDim2.fromOffset(72, 2), BackgroundTransparency = 1, Text = LocalPlayer.DisplayName, Font = Enum.Font.GothamBold, TextSize = 15, TextColor3 = C.text, TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd }, pfTop)
+mk("TextLabel", { Size = UDim2.new(1, -72, 0, 16), Position = UDim2.fromOffset(72, 23), BackgroundTransparency = 1, Text = "@".. LocalPlayer.Name, Font = Enum.Font.Gotham, TextSize = 12, TextColor3 = C.muted, TextXAlignment = Enum.TextXAlignment.Left }, pfTop)
+local pfRolePill = mk("TextLabel", { Size = UDim2.fromOffset(74, 24), Position = UDim2.fromOffset(72, 44), BackgroundColor3 = rc[1], Text = _zt, TextColor3 = rc[2], Font = Enum.Font.GothamBlack, TextSize = 12 }, pfTop)
+corner(pfRolePill, 12)
+task.spawn(function()
+local ok, content = pcall(function()
+return Players:GetUserThumbnailAsync(LocalPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size180x180)
+end)
+if ok and content then
+pfAvatarImg.Image = content
+tw(pfAvatarImg, 0.3, { ImageTransparency = 0 })
+pfAvatarInit.Visible = false
+end
+end)
+local cDetail = addCard(pProfile)
+addHeading(cDetail, "DETAIL AKUN")
+kvRow(cDetail, "Username", LocalPlayer.Name)
+kvRow(cDetail, "Display Name", LocalPlayer.DisplayName)
+local countryVal = kvRow(cDetail, "Negara", "Memuat...")
+local roleVal = kvRow(cDetail, "Role", _zt)
+roleVal.TextColor3 = (_zt == "FREE") and C.muted or C.yellowDark
+task.spawn(function()
+local ok, country = pcall(function()
+return LocalizationService:GetCountryRegionForPlayerAsync(LocalPlayer)
+end)
+countryVal.Text = (ok and type(country) == "string"and country ~= "") and country or "Tidak diketahui"
+end)
+addNote(cDetail, _zr and "Semua fitur terbuka, tanpa batasan."or "Akun FREE hanya membuka Auto Farm mode Smart.")
+local currentTab
+local function showTab(i, instant)
+if currentTab == i then return end
+currentTab = i
+for j, p in ipairs(pages) do
+if j == i then
+p.cg.Visible = true
+if instant then
+p.cg.GroupTransparency, p.cg.Position = 0, UDim2.new()
+else
+p.cg.GroupTransparency, p.cg.Position = 1, UDim2.fromOffset(0, 14)
+tw(p.cg, 0.25, { GroupTransparency = 0, Position = UDim2.new() })
+end
+else
+p.cg.Visible = false
+end
+tw(tabBtns[j], 0.18, { TextColor3 = (j == i) and C.text or C.muted })
+end
+local pos = UDim2.new((i - 1) / #TABS, 3, 0, 3)
+if instant then tabInd.Position = pos else tw(tabInd, 0.3, { Position = pos }, BACK_OUT[1], BACK_OUT[2]) end
+end
+local TAB_LOCK = { Favorit = "favorit", Jual = "jual", Trade = "trade", Extras = "streak"}
+for i, name in ipairs(TABS) do
+local b = mk("TextButton", {
+Size = UDim2.new(1 / #TABS, 0, 1, 0), Position = UDim2.new((i - 1) / #TABS, 0, 0, 0), BackgroundTransparency = 1, Text = name,
+Font = Enum.Font.GothamBold, TextSize = 12, TextColor3 = C.muted, AutoButtonColor = false, ZIndex = 2,
+}, tabBar)
+b.Activated:Connect(function() showTab(i) end)
+tabBtns[i] = b
+if _zp(TAB_LOCK[name]) then makeLock(b, C.muted, Vector2.new(1, 0.5), UDim2.new(1, -6, 0.5, 0)) end
+end
+local toastCG = mk("CanvasGroup", {
+AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 48), Size = UDim2.new(1, -28, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
+BackgroundColor3 = C.text, BorderSizePixel = 0, GroupTransparency = 1, Visible = false, ZIndex = 40,
+}, main)
+corner(toastCG, 10)
+local toastBar = mk("Frame", { Size = UDim2.new(0, 5, 1, 0), BackgroundColor3 = C.yellow, BorderSizePixel = 0 }, toastCG)
+local toastLbl = mk("TextLabel", {
+Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, Text = "", TextColor3 = C.white,
+Font = Enum.Font.GothamMedium, TextSize = 12, TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left,
+}, toastCG)
+mk("UIPadding", { PaddingTop = UDim.new(0, 9), PaddingBottom = UDim.new(0, 9), PaddingLeft = UDim.new(0, 16), PaddingRight = UDim.new(0, 10) }, toastLbl)
+mk("UISizeConstraint", { MaxSize = Vector2.new(360, math.huge) }, toastCG)
+local toastToken = 0
+local KIND = { ok = C.green, warn = C.yellow, err = C.red, info = C.yellowLight }
+local bubble = mk("ImageButton", {
+Name = "Bubble", Size = UDim2.fromOffset(60, 60), AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = C.yellow,
+AutoButtonColor = false, Image = "", ScaleType = Enum.ScaleType.Crop, Visible = false,
+}, sg)
+corner(bubble, 30)
+local bubbleStroke = stroke(bubble, C.yellowDark, 3)
+local bScale = mk("UIScale", { Scale = 0 }, bubble)
+local bubbleCM = mk("TextLabel", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = _BRAND_TAG, Font = Enum.Font.GothamBlack, TextSize = 20, TextColor3 = C.text }, bubble)
+local bubbleDot = mk("Frame", { Size = UDim2.fromOffset(14, 14), AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 1, 0, -1), BackgroundColor3 = C.gray, BorderSizePixel = 0, ZIndex = 3 }, bubble)
+corner(bubbleDot, 7)
+stroke(bubbleDot, C.white, 2)
+TweenService:Create(bubbleStroke, TweenInfo.new(1.1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { Transparency = 0.7 }):Play()
+local function placeBubble() bubble.Position = UDim2.fromOffset(bubbleCenter.X, bubbleCenter.Y) end
+placeBubble()
+function Core.toast(text, kind, secs)
+toastToken = toastToken + 1
+local my = toastToken
+toastLbl.Text = tostring(text)
+toastBar.BackgroundColor3 = KIND[kind or "info"] or C.yellow
+toastCG.Visible = true
+toastCG.GroupTransparency = 1
+toastCG.Position = UDim2.new(0.5, 0, 0, 40)
+tw(toastCG, 0.32, { GroupTransparency = 0.03, Position = UDim2.new(0.5, 0, 0, 58) }, BACK_OUT[1], BACK_OUT[2])
+if state.minimized then
+tw(bScale, 0.12, { Scale = 1.25 })
+task.delay(0.14, function() tw(bScale, 0.2, { Scale = 1 }, BACK_OUT[1], BACK_OUT[2]) end)
+end
+task.delay(secs or 4, function()
+if toastToken == my then
+tw(toastCG, 0.25, { GroupTransparency = 1, Position = UDim2.new(0.5, 0, 0, 44) })
+task.delay(0.3, function()
+if toastToken == my then toastCG.Visible = false end
+end)
+end
+end)
+end
+local overlay = mk("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 1, Visible = false, Active = true, ZIndex = 60 }, main)
+local dlg = mk("CanvasGroup", {
+AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.new(1, -40, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
+BackgroundColor3 = C.white, GroupTransparency = 1, ZIndex = 61,
+}, overlay)
+corner(dlg, 14)
+stroke(dlg, C.yellow, 2)
+mk("UISizeConstraint", { MaxSize = Vector2.new(320, math.huge) }, dlg)
+local dScale = mk("UIScale", { Scale = 0.8 }, dlg)
+mk("UIPadding", { PaddingTop = UDim.new(0, 14), PaddingBottom = UDim.new(0, 14), PaddingLeft = UDim.new(0, 14), PaddingRight = UDim.new(0, 14) }, dlg)
+mk("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }, dlg)
+local dTitle = label(dlg, "", 15, C.text, Enum.Font.GothamBold)
+local dText = label(dlg, "", 12, C.muted, Enum.Font.Gotham)
+local btnRow = mk("Frame", { Size = UDim2.new(1, 0, 0, 38), BackgroundTransparency = 1, LayoutOrder = ord(dlg) }, dlg)
+mk("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }, btnRow)
+local noBtn = mk("TextButton", { Size = UDim2.new(0.5, -4, 1, 0), BackgroundColor3 = C.yellow, Text = "Batal", TextColor3 = C.text, Font = Enum.Font.GothamBold, TextSize = 13, LayoutOrder = 1, AutoButtonColor = false }, btnRow)
+corner(noBtn, 10)
+local yesBtn = mk("TextButton", { Size = UDim2.new(0.5, -4, 1, 0), BackgroundColor3 = C.red, Text = "", TextColor3 = C.white, Font = Enum.Font.GothamBold, TextSize = 13, LayoutOrder = 2, AutoButtonColor = false }, btnRow)
+corner(yesBtn, 10)
+local dlgToken, pendingYes, pendingNo = 0, nil, nil
+local function closeDialog()
+local my = dlgToken
+tw(overlay, 0.18, { BackgroundTransparency = 1 })
+tw(dlg, 0.18, { GroupTransparency = 1 })
+tw(dScale, 0.18, { Scale = 0.85 })
+task.delay(0.2, function()
+if dlgToken == my then overlay.Visible = false end
+end)
+end
+function Core.ask(titleText, text, yesText, onYes, onNo)
+dlgToken = dlgToken + 1
+dTitle.Text, dText.Text, yesBtn.Text = titleText, text, yesText
+pendingYes, pendingNo = onYes, onNo
+overlay.Visible = true
+overlay.BackgroundTransparency, dlg.GroupTransparency, dScale.Scale = 1, 1, 0.8
+tw(overlay, 0.2, { BackgroundTransparency = 0.5 })
+tw(dlg, 0.2, { GroupTransparency = 0 })
+tw(dScale, 0.32, { Scale = 1 }, BACK_OUT[1], BACK_OUT[2])
+end
+yesBtn.Activated:Connect(function()
+local cb = pendingYes
+pendingYes = nil
+closeDialog()
+if cb then cb() end
+end)
+noBtn.Activated:Connect(function()
+local cbNo = pendingNo
+pendingYes, pendingNo = nil, nil
+closeDialog()
+if cbNo then cbNo() end
+end)
+local activeDrag
+local function attachDrag(handle, cfg)
+handle.InputBegan:Connect(function(input)
+if activeDrag then return end
+local t = input.UserInputType
+if t == Enum.UserInputType.MouseButton1 or t == Enum.UserInputType.Touch then
+activeDrag = { input = input, cfg = cfg, sx = input.Position.X, sy = input.Position.Y, moved = false, touch = (t == Enum.UserInputType.Touch) }
+if cfg.onStart then cfg.onStart() end
+end
+end)
+end
+table.insert(connections, UserInputService.InputChanged:Connect(function(input)
+local d = activeDrag
+if not d then return end
+if (d.touch and input == d.input) or ((not d.touch) and input.UserInputType == Enum.UserInputType.MouseMovement) then
+local dx, dy = input.Position.X - d.sx, input.Position.Y - d.sy
+if not d.moved and (dx * dx + dy * dy) > 36 then d.moved = true end
+if d.moved then d.cfg.onMove(dx, dy) end
+end
+end))
+table.insert(connections, UserInputService.InputEnded:Connect(function(input)
+local d = activeDrag
+if d and (input == d.input or ((not d.touch) and input.UserInputType == Enum.UserInputType.MouseButton1)) then
+activeDrag = nil
+if d.cfg.onEnd then d.cfg.onEnd(d.moved) end
+end
+end))
+local base
+attachDrag(header, {
+onStart = function() base = winPos end,
+onMove = function(dx, dy)
+local v = vp()
+winPos = Vector2.new(math.clamp(base.X + dx, 0, math.max(0, v.X - winSize.X)), math.clamp(base.Y + dy, 0, math.max(0, v.Y - winSize.Y)))
+applyWin()
+end,
+})
+local grip = mk("TextButton", { Size = UDim2.fromOffset(26, 26), AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -2, 1, -2), BackgroundTransparency = 1, Text = "", ZIndex = 50, AutoButtonColor = false }, main)
+local dots = {}
+for _, p in ipairs({ { 18, 18 }, { 12, 18 }, { 18, 12 }, { 6, 18 }, { 12, 12 }, { 18, 6 } }) do
+local d = mk("Frame", { Size = UDim2.fromOffset(3, 3), Position = UDim2.fromOffset(p[1], p[2]), BackgroundColor3 = C.yellowDark, BorderSizePixel = 0, ZIndex = 51 }, grip)
+corner(d, 2)
+table.insert(dots, d)
+end
+grip.MouseEnter:Connect(function() for _, d in ipairs(dots) do tw(d, 0.12, { BackgroundColor3 = C.text }) end end)
+grip.MouseLeave:Connect(function() for _, d in ipairs(dots) do tw(d, 0.12, { BackgroundColor3 = C.yellowDark }) end end)
+local size0
+attachDrag(grip, {
+onStart = function() size0 = winSize end,
+onMove = function(dx, dy)
+local v = vp()
+local maxW = math.min(720, math.max(300, v.X - winPos.X - 4))
+local maxH = math.min(820, math.max(340, v.Y - winPos.Y - 4))
+winSize = Vector2.new(math.clamp(size0.X + dx, 300, maxW), math.clamp(size0.Y + dy, 340, maxH))
+applyWin()
+end,
+})
+local function clampCenter(c)
+local v = vp()
+return Vector2.new(math.clamp(c.X, 32, math.max(32, v.X - 32)), math.clamp(c.Y, 32, math.max(32, v.Y - 32)))
+end
+local function minimize()
+if state.minimized or not state.ready or state.busy then return end
+state.minimized, state.busy = true, true
+if not state.bubbleMoved then bubbleCenter = clampCenter(Vector2.new(winPos.X + 30, winPos.Y + 30)) end
+placeBubble()
+tw(main, 0.28, { GroupTransparency = 1, Position = UDim2.fromOffset(bubbleCenter.X, bubbleCenter.Y) }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+tw(mainScale, 0.28, { Scale = 0.15 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+task.delay(0.3, function()
+main.Visible = false
+bubble.Visible = true
+bScale.Scale = 0
+tw(bScale, 0.4, { Scale = 1 }, BACK_OUT[1], BACK_OUT[2])
+state.busy = false
+end)
+end
+local function restore()
+if not state.minimized or state.busy then return end
+state.minimized, state.busy = false, true
+local v = vp()
+winPos = Vector2.new(math.clamp(bubbleCenter.X - 30, 8, math.max(8, v.X - winSize.X - 8)), math.clamp(bubbleCenter.Y - 30, 8, math.max(8, v.Y - winSize.Y - 8)))
+tw(bScale, 0.15, { Scale = 0 })
+main.Size = UDim2.fromOffset(winSize.X, winSize.Y)
+main.Position = UDim2.fromOffset(bubbleCenter.X, bubbleCenter.Y)
+mainScale.Scale, main.GroupTransparency, main.Visible = 0.15, 1, true
+tw(main, 0.36, { GroupTransparency = 0, Position = UDim2.fromOffset(winPos.X + winSize.X / 2, winPos.Y + winSize.Y / 2) })
+tw(mainScale, 0.42, { Scale = 1 }, BACK_OUT[1], BACK_OUT[2])
+task.delay(0.18, function() bubble.Visible = false end)
+task.delay(0.45, function() state.busy = false end)
+end
+local bBase
+attachDrag(bubble, {
+onStart = function() bBase = bubbleCenter end,
+onMove = function(dx, dy)
+state.bubbleMoved = true
+bubbleCenter = clampCenter(Vector2.new(bBase.X + dx, bBase.Y + dy))
+placeBubble()
+end,
+onEnd = function(moved) if not moved then restore() end end,
+})
+minBtn.Activated:Connect(minimize)
+function UI.fadeOut(cb)
+tw(mainScale, 0.25, { Scale = 0.85 })
+tw(main, 0.25, { GroupTransparency = 1 })
+tw(bScale, 0.2, { Scale = 0 })
+task.delay(0.3, cb)
+end
+closeBtn.Activated:Connect(function()
+Core.ask("Tutup GUI?", "Semua fitur akan berhenti dan GUI dihapus. Lanjutkan?", "Lanjut", function()
+Core.ask("Konfirmasi terakhir", "Ini MENUTUP TOTAL program. Untuk menampilkan lagi harus eksekusi script ulang. Yakin?", "Tutup Total", function()
+Core.closeAll()
+end)
+end)
+end)
+table.insert(connections, UserInputService.InputBegan:Connect(function(input, gp)
+if not gp and state.ready and input.KeyCode == CONFIG.ToggleKey then
+if state.minimized then restore() else minimize() end
+end
+end))
+function UI.refresh()
+for _, f in ipairs(refreshers) do pcall(f) end
+end
+Core.refreshUI = UI.refresh
+task.spawn(function()
+while running do
+_zq()
+statusLbl.Text = stats.status or ""
+statsLbl.Text = ("Inv %s/%d  |  Tangkap %d  |  Fav %d  |  Jual %d"):format(
+tostring(stats.inv or "?"), CONFIG.MaxInventory, stats.caught, stats.fav, stats.sold)
+local col = S.farm and C.green or C.gray
+statusDot.BackgroundColor3 = col
+bubbleDot.BackgroundColor3 = S.farm and C.green or C.gray
+UI.refresh()
+task.wait(0.5)
+end
+end)
+task.spawn(function()
+while running do
+shine.Position = UDim2.new(-0.3, 0, -0.4, 0)
+if main.Visible and not state.minimized then
+tw(shine, 1.1, { Position = UDim2.new(1.3, 0, -0.4, 0) }, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+end
+task.wait(6)
+end
+end)
+local splashImg
+loadLogo(function(asset)
+hdrImg.Image = asset
+tw(hdrImg, 0.4, { ImageTransparency = 0 })
+bubble.Image = asset
+bubbleCM.Visible = false
+if splashImg then
+splashImg.Image = asset
+tw(splashImg, 0.4, { ImageTransparency = 0 })
+end
+end)
+local splash = mk("CanvasGroup", {
+AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(280, 220),
+BackgroundColor3 = C.white, BorderSizePixel = 0, GroupTransparency = 1,
+}, sg)
+corner(splash, 20)
+stroke(splash, C.yellow, 2)
+local sScale = mk("UIScale", { Scale = 0.8 }, splash)
+local sLogoBox = mk("Frame", { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 20), Size = UDim2.fromOffset(88, 88), BackgroundColor3 = C.yellow, BorderSizePixel = 0 }, splash)
+corner(sLogoBox, 44)
+stroke(sLogoBox, C.yellowDark, 3)
+local sLogoScale = mk("UIScale", { Scale = 1 }, sLogoBox)
+mk("TextLabel", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = _BRAND_TAG, Font = Enum.Font.GothamBlack, TextSize = 30, TextColor3 = C.text }, sLogoBox)
+splashImg = mk("ImageLabel", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ImageTransparency = 1, ScaleType = Enum.ScaleType.Crop }, sLogoBox)
+corner(splashImg, 44)
+mk("TextLabel", { Position = UDim2.fromOffset(0, 118), Size = UDim2.new(1, 0, 0, 22), BackgroundTransparency = 1, Text = _BRAND_SPLASH_TITLE, Font = Enum.Font.GothamBlack, TextSize = 18, TextColor3 = C.text }, splash)
+mk("TextLabel", { Position = UDim2.fromOffset(0, 139), Size = UDim2.new(1, 0, 0, 14), BackgroundTransparency = 1, Text = _BRAND_SPLASH_SUB, Font = Enum.Font.GothamBold, TextSize = 11, TextColor3 = C.yellowDark }, splash)
+local barTrack = mk("Frame", { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 168), Size = UDim2.fromOffset(200, 6), BackgroundColor3 = C.line, BorderSizePixel = 0 }, splash)
+corner(barTrack, 3)
+local barFill = mk("Frame", { Size = UDim2.fromScale(0, 1), BackgroundColor3 = C.yellow, BorderSizePixel = 0 }, barTrack)
+corner(barFill, 3)
+local stepLbl = mk("TextLabel", { Position = UDim2.fromOffset(0, 180), Size = UDim2.new(1, 0, 0, 16), BackgroundTransparency = 1, Text = "", Font = Enum.Font.Gotham, TextSize = 10, TextColor3 = C.muted }, splash)
+TweenService:Create(sLogoScale, TweenInfo.new(0.7, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { Scale = 1.08 }):Play()
+task.spawn(function()
+tw(splash, 0.35, { GroupTransparency = 0 })
+tw(sScale, 0.45, { Scale = 1 }, BACK_OUT[1], BACK_OUT[2])
+local steps = {
+{ ("Akun %s - mode %s"):format(LocalPlayer.Name, _zt), 0.2 },
+{ (hookmetamethod and getnamecallmethod) and "Fitur executor lengkap"or "Fitur executor terbatas", 0.35 },
+{ mgState and "Minigame & state game ditemukan"or "Minigame ditemukan (mode GUI)", 0.7 },
+{ "Menyiapkan tampilan...", 1 },
+}
+for _, s in ipairs(steps) do
+stepLbl.Text = s[1]
+tw(barFill, 0.4, { Size = UDim2.fromScale(s[2], 1) })
+task.wait(0.5)
+end
+task.wait(0.15)
+tw(splash, 0.3, { GroupTransparency = 1 })
+tw(sScale, 0.3, { Scale = 1.12 })
+task.wait(0.3)
+splash:Destroy()
+applyWin()
+main.Visible = true
+showTab(1, true)
+UI.refresh()
+tw(main, 0.35, { GroupTransparency = 0 })
+tw(mainScale, 0.5, { Scale = 1 }, BACK_OUT[1], BACK_OUT[2])
+state.ready = true
+Core.toast(("Masuk sebagai %s. Semua fitur MATI. Nyalakan sesuai kebutuhan."):format(_zt), _zr and "ok"or "info", 5)
+end)
+function UI.destroy()
+pcall(function() sg:Destroy() end)
+end
+return UI
+end
+local UI = buildGui()
+local function Destroy()
+running = false
+S.farm, S.sellOn = false, false
+pcall(Boost.disable)
+pcall(restoreTuning)
+if mg then pcall(mg.SetHolding, mg, false) end
+for _, c in ipairs(connections) do pcall(function() c:Disconnect() end) end
+if env[K.g2o] then env[K.g2o].handler = nil end
+pcall(UI.destroy)
+env[K.g0a] = nil
+end
+function Core.closeAll()
+UI.fadeOut(Destroy)
+end
+env[K.g0a] = { Destroy = Destroy }
+task.spawn(function() pcall(refreshInventory) end)
+log("loaded v".. CONFIG.Version .. ". Semua fitur mati. Minimize/restore:", CONFIG.ToggleKey.Name)
