@@ -2075,7 +2075,7 @@ local cGive = addCard(pTrade)
 addHeading(cGive, "JUMLAH & AKSI", "trade")
 addNumber(cGive, "Jumlah ikan", "Berapa ekor yang mau dikirim.",
 function() return Trade.amount end, function(v) Trade.amount = math.max(1, math.floor(v)) end, 1, 500, true, nil, "trade")
-addSwitch(cGive, "Auto dekati target", "Biasanya tidak perlu. Nyalakan kalau kirim jarak jauh gagal terus.",
+addSwitch(cGive, "Auto dekati target", "Opsional, biasanya tidak perlu dinyalakan.",
 function() return Trade.autoApproach end, function(v) Trade.autoApproach = v end, nil, "trade")
 local giveStat = label(cGive, "", 11, C.muted, Enum.Font.GothamMedium)
 table.insert(refreshers, function()
@@ -2086,21 +2086,12 @@ local ok, why = Trade.start()
 if not ok then Core.toast("Trade gagal mulai: " .. tostring(why), "warn", 6) end
 end, "trade")
 addButton(cGive, "Stop", "ghost", function() Trade.stop() end, "trade")
-addButton(cGive, "Cek Isi Backpack", "ghost", function()
-	local pool1, pool2 = listFishTools(LocalPlayer.Character), listFishTools(LocalPlayer:FindFirstChildOfClass("Backpack"))
-	local parts = {}
-	for _, t in ipairs(pool1) do table.insert(parts, "[char] " .. dumpToolAttrs(t)) end
-	for _, t in ipairs(pool2) do table.insert(parts, "[bp] " .. dumpToolAttrs(t)) end
-	Trade.log = #parts > 0 and table.concat(parts, " | ") or "Backpack & Character kosong dari Tool"
-	Core.toast("Isi backpack dicek, lihat di status bawah.", "info", 4)
-end, "trade")
-addNote(cGive, "Ikan favorit otomatis di-unfavorite dulu. Dikirim satu-satu, tunggu respons baru lanjut.")
+addNote(cGive, "Ikan favorit otomatis dilepas dulu sebelum dikirim.")
 
 local cAccept = addCard(pTrade)
 addHeading(cAccept, "TERIMA KIRIMAN MASUK", "trade")
 addSwitch(cAccept, "Auto Accept", "Otomatis terima kiriman ikan yang masuk.",
 	function() return Trade.autoAccept end, function(v) Trade.autoAccept = v end, nil, "trade")
-addNote(cAccept, "Popup bawaan game mungkin sempat kelihatan sebentar, itu wajar.")
 
 local cBoost = addCard(pExtras)
 addHeading(cBoost, "BOOST PERFORMANCE", "boost")
