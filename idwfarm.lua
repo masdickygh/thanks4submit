@@ -248,6 +248,7 @@ local R = {
 rA = waitChild(FS, _D("3d743dca20fe593d897c79fb0f7428db")),
 GetData = waitChild(IE, _D("327338c70deb4328985770f10f592fd602")),
 ToggleFav = waitChild(IE, _D("327338c70deb4328985763fb1c7a22c725fe5a35936143f1")),
+eqFish = waitChild(IE, _D("327338c70deb4328985772e50e743ee40aec44")),
 rB = findRemote(_D("287822ce25f65f32")),
 tReq = waitChild(FS, _D("2f6f2fcc10f94928b36d46e11e6e3a")),
 tRes = waitChild(FS, _D("2f6f2fcc10f94928b36d44e414733dc7")),
@@ -669,44 +670,35 @@ local function dumpToolAttrs(t)
 end
 local function findAndEquipFishTool(f, char, hum, backpack)
 	local id = f.uniqueId
-	local candidates = {}
-	for _, pool in ipairs({ listFishTools(char), listFishTools(backpack) }) do
-		for _, t in ipairs(pool) do
-			if not tradeUsedTools[t] and t.Name == f.name then table.insert(candidates, t) end
+	for _, t in ipairs(listFishTools(char)) do
+		local ok, tid = pcall(function() return t:GetAttribute(_D("3d743dca2afb")) end)
+		if ok and tid == id and not tradeUsedTools[t] then
+			tradeUsedTools[t] = true
+			return t, "Sudah ter-equip"
 		end
 	end
-	if #candidates == 0 then
-		local all = {}
-		for _, pool in ipairs({ listFishTools(char), listFishTools(backpack) }) do
-			for _, t in ipairs(pool) do table.insert(all, t.Name) end
-		end
-		return nil, "Tidak ada Tool bernama '" .. tostring(f.name) .. "'. Isi Backpack+Character: " .. (#all > 0 and table.concat(all, ", ") or "(kosong)")
+	if not R.eqFish then
+		return nil, "Remote equip ikan tidak ditemukan"
 	end
-	local exact, fallback = nil, nil
-	for _, t in ipairs(candidates) do
-		local wasInChar = (t.Parent == char)
-		if not wasInChar then pcall(hum.EquipTool, hum, t) task.wait(0.15) end
-		local okId, tid = pcall(function() return t:GetAttribute(_D("3d743dca2afb")) end)
-		if okId and tid == id then
-			exact = t
-			break
-		elseif okId and tid ~= nil then
-			if not wasInChar then pcall(function() t.Parent = backpack end) end
-		else
-			if not fallback then fallback = t end
-			if not wasInChar then pcall(function() t.Parent = backpack end) end
+	pcall(hum.UnequipTools, hum)
+	local okFire = pcall(function() R.eqFish:FireServer(id, true) end)
+	if not okFire then
+		return nil, "Gagal memanggil remote equip ikan"
+	end
+	local deadline = os.clock() + 3
+	while os.clock() < deadline do
+		task.wait(0.1)
+		for _, t in ipairs(listFishTools(char)) do
+			local ok, tid = pcall(function() return t:GetAttribute(_D("3d743dca2afb")) end)
+			if ok and tid == id and not tradeUsedTools[t] then
+				tradeUsedTools[t] = true
+				return t, "Berhasil di-equip"
+			end
 		end
 	end
-	local chosen = exact or fallback
-	if not chosen then
-		return nil, "Semua Tool bernama '" .. tostring(f.name) .. "' sudah dicoba, tidak ada yang FishId-nya cocok"
-	end
-	if chosen.Parent ~= char then
-		pcall(hum.EquipTool, hum, chosen)
-		task.wait(0.15)
-	end
-	tradeUsedTools[chosen] = true
-	return chosen, exact and "FishId cocok persis" or "Atribut FishId kosong di semua kandidat - pakai tool nama sama sebagai tebakan terbaik"
+	local all = {}
+	for _, t in ipairs(listFishTools(char)) do table.insert(all, dumpToolAttrs(t)) end
+	return nil, "Server tidak merespon permintaan equip dalam 3 detik. Isi Character saat ini: " .. (#all > 0 and table.concat(all, ", ") or "(kosong)")
 end
 local function scanTradeCandidates()
 	local fish = fetchInventory()
